@@ -6,7 +6,6 @@ authors = ["rsteube <rsteube@users.noreply.github.com>"]
 [dependencies]
 rocket = "0.3.15"
 rocket_codegen = "0.3.15"
-rusoto_dynamodb = "0.32.0"
-rusoto_core = "0.32.0"
-rusoto_credential = "0.11.0"
+rusoto_dynamodb = "0.33"
+rusoto_core = "0.33"
 futures = "0.1"
