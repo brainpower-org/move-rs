@@ -4,20 +4,27 @@
 
 extern crate futures;
 extern crate rocket;
+extern crate rocket_contrib;
 extern crate rusoto_core;
 extern crate rusoto_dynamodb;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_dynamodb;
 
 use rocket::request::{Form, FromForm};
 use rocket::response::NamedFile;
-use rocket::State;
+use rocket::response::status;
+use rocket::{Outcome, State};
+use rocket_contrib::Json;
 use rusoto_core::Region;
-use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, PutItemInput, ScanInput};
+use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, PutItemInput, ScanError, ScanInput, ScanOutput};
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[derive(FromForm)]
+#[derive(FromForm, Serialize, Deserialize)]
 struct Employee {
     id: String,
     name: String,
@@ -57,13 +64,13 @@ fn index() -> io::Result<NamedFile> {
 }
 
 #[get("/tables")]
-fn list_tables(client: State<DynamoDbClient>) -> String {
+fn list_tables(client: State<DynamoDbClient>) -> Result<Json<ScanOutput>, status::NotFound<String>>  {
     let mut scan_input = ScanInput::default();
     scan_input.table_name = String::from("rust-skillgroup");
 
-    match client.scan(scan_input).sync() {
-        Ok(scan_output) => format!("{:?}", scan_output),
-        Err(scan_error) => format!("{:?}", scan_error),
+    match client.scan(&scan_input).sync() {
+        Ok(scan_output) => Ok(Json(scan_output)),
+        Err(scan_error) => Err(status::NotFound("Leg dich gehackt!".to_string())),
     }
 }
 
@@ -78,22 +85,14 @@ fn list_tables(client: State<DynamoDbClient>) -> String {
 
 #[post("/employee", data = "<employee>")]
 fn put_employee(client: State<DynamoDbClient>, employee: Form<Employee>) -> String {
-    let mut put_employee = PutItemInput::default();
-    let mut employee_id = AttributeValue::default();
-    let mut employee_name = AttributeValue::default();
-    let employee_data = employee.into_inner();
 
-    employee_id.s = Some(employee_data.id);
-    employee_name.s = Some(employee_data.name);
+    let put_employee = PutItemInput {
+        item: serde_dynamodb::to_hashmap(&employee.into_inner()).unwrap(),
+        table_name: "rust-skillgroup".to_string(),
+        ..Default::default()
+    };
 
-    put_employee.table_name = String::from("rust-skillgroup");
-    put_employee.item = HashMap::new();
-    put_employee.item.insert(String::from("id"), employee_id);
-    put_employee
-        .item
-        .insert(String::from("name"), employee_name);
-
-    match client.put_item(put_employee).sync() {
+    match client.put_item(&put_employee).sync() {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }
@@ -105,7 +104,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::new(Region::EuCentral1);
+    let client = DynamoDbClient::simple(Region::EuCentral1);
 
     rocket::ignite()
         .mount(
