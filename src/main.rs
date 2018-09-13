@@ -4,23 +4,53 @@
 
 extern crate futures;
 extern crate rocket;
+extern crate rocket_contrib;
 extern crate rusoto_core;
 extern crate rusoto_dynamodb;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_dynamodb;
+extern crate uuid;
 
 use rocket::request::{Form, FromForm};
+use rocket::response::status;
 use rocket::response::NamedFile;
-use rocket::State;
+use rocket::{Outcome, State};
+use rocket_contrib::Json;
 use rusoto_core::Region;
-use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, PutItemInput, ScanInput};
+use rusoto_dynamodb::{
+    AttributeValue, DynamoDb, DynamoDbClient, PutItemInput, ScanError, ScanInput, ScanOutput,
+};
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[derive(FromForm)]
+#[derive(FromForm, Serialize, Deserialize)]
 struct Employee {
     id: String,
     name: String,
+    model_type: String,
+}
+
+impl Default for Employee {
+    fn default() -> Employee {
+        return Employee {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: String::from("NewUser"),
+            model_type: String::from("Employee"),
+        };
+    }
+}
+
+impl Employee {
+    fn from_name(name: String) -> Self {
+        Employee {
+            name,
+            ..Employee::default()
+        }
+    }
 }
 
 #[get("/area/<area..>")]
@@ -56,14 +86,23 @@ fn index() -> io::Result<NamedFile> {
     NamedFile::open("static/index.html")
 }
 
-#[get("/tables")]
-fn list_tables(client: State<DynamoDbClient>) -> String {
+#[get("/employees")]
+fn get_employees(
+    client: State<DynamoDbClient>,
+) -> Result<Json<Vec<Employee>>, status::NotFound<String>> {
     let mut scan_input = ScanInput::default();
     scan_input.table_name = String::from("rust-skillgroup");
 
-    match client.scan(scan_input).sync() {
-        Ok(scan_output) => format!("{:?}", scan_output),
-        Err(scan_error) => format!("{:?}", scan_error),
+    match client.scan(&scan_input).sync() {
+        Ok(scan_output) => Ok(Json(
+            scan_output
+                .items
+                .unwrap_or_else(|| vec![])
+                .into_iter()
+                .map(|item| serde_dynamodb::from_hashmap::<Employee>(item).unwrap())
+                .collect::<Vec<Employee>>(),
+        )),
+        Err(scan_error) => Err(status::NotFound("Leg dich gehackt!".to_string())),
     }
 }
 
@@ -78,22 +117,13 @@ fn list_tables(client: State<DynamoDbClient>) -> String {
 
 #[post("/employee", data = "<employee>")]
 fn put_employee(client: State<DynamoDbClient>, employee: Form<Employee>) -> String {
-    let mut put_employee = PutItemInput::default();
-    let mut employee_id = AttributeValue::default();
-    let mut employee_name = AttributeValue::default();
-    let employee_data = employee.into_inner();
+    let put_employee = PutItemInput {
+        item: serde_dynamodb::to_hashmap(&employee.into_inner()).unwrap(),
+        table_name: "rust-skillgroup".to_string(),
+        ..Default::default()
+    };
 
-    employee_id.s = Some(employee_data.id);
-    employee_name.s = Some(employee_data.name);
-
-    put_employee.table_name = String::from("rust-skillgroup");
-    put_employee.item = HashMap::new();
-    put_employee.item.insert(String::from("id"), employee_id);
-    put_employee
-        .item
-        .insert(String::from("name"), employee_name);
-
-    match client.put_item(put_employee).sync() {
+    match client.put_item(&put_employee).sync() {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }
@@ -105,7 +135,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::new(Region::EuCentral1);
+    let client = DynamoDbClient::simple(Region::EuCentral1);
 
     rocket::ignite()
         .mount(
@@ -115,7 +145,7 @@ fn main() {
                 resource,
                 put_resource,
                 index,
-                list_tables,
+                get_employees,
                 put_employee,
                 files
             ],

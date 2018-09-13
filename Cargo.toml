@@ -6,6 +6,11 @@ authors = ["rsteube <rsteube@users.noreply.github.com>"]
 [dependencies]
 rocket = "0.3.15"
 rocket_codegen = "0.3.15"
-rusoto_dynamodb = "0.33"
-rusoto_core = "0.33"
+rocket_contrib = "0.3.15"
+rusoto_dynamodb = "0.32"
+rusoto_core = "0.32"
+serde = "1.0"
+serde_derive = "1.0"
+serde_dynamodb = "0.1.2"
 futures = "0.1"
+uuid = { version = "0.7", features = ["v4"] }
