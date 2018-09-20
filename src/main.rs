@@ -13,25 +13,52 @@ extern crate serde_derive;
 extern crate serde_dynamodb;
 extern crate uuid;
 
-use rocket::request::{Form, FromForm};
-use rocket::response::status;
+use rocket::request::Form;
 use rocket::response::NamedFile;
-use rocket::{Outcome, State};
+use rocket::response::status;
+use rocket::State;
 use rocket_contrib::Json;
 use rusoto_core::Region;
 use rusoto_dynamodb::{
-    AttributeValue, DynamoDb, DynamoDbClient, PutItemInput, ScanError, ScanInput, ScanOutput,
+    DynamoDb, DynamoDbClient, PutItemInput, ScanInput,
 };
-use std::collections::HashMap;
+use std::error::Error;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 #[derive(FromForm, Serialize, Deserialize)]
 struct Employee {
     id: String,
     name: String,
     model_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
+enum Place {
+    Desk {
+        id: String,
+        building: String,
+        floor: String,
+        coordinate: Vec<(i32, i32)>,
+        image: String,
+
+        employee: Option<Employee>,
+    },
+    Printer {
+        id: String,
+        building: String,
+        floor: String,
+        coordinate: Vec<(i32, i32)>,
+        image: String,
+    },
+    Area {
+        id: String,
+        building: String,
+        floor: String,
+        coordinate: Vec<(i32, i32)>,
+
+        label: String,
+    }
 }
 
 impl Default for Employee {
@@ -51,34 +78,6 @@ impl Employee {
             ..Employee::default()
         }
     }
-}
-
-#[get("/area/<area..>")]
-fn area(area: PathBuf) -> String {
-    format!("Hello, {:?}!", area)
-}
-
-#[get("/resource/<name>")]
-fn resource(name: String) -> String {
-    // TODO ensure name has no invalid characters (cmd execution)
-    let output = Command::new("find")
-        .arg("data")
-        .arg("-name")
-        .arg(&name)
-        .arg("-type")
-        .arg("f")
-        .arg("-not")
-        .arg("-path")
-        .arg("*/\\.*")
-        .output()
-        .expect("failed to execute process");
-    String::from_utf8_lossy(&output.stdout).to_string()
-}
-
-#[put("/resource/<name>/<area..>")]
-fn put_resource(name: String, area: PathBuf) -> String {
-    // TODO ensure name has no invalid characters (cmd execution)
-    format!("Test {:?}/{}!", area, name)
 }
 
 #[get("/")]
@@ -102,7 +101,7 @@ fn get_employees(
                 .map(|item| serde_dynamodb::from_hashmap::<Employee>(item).unwrap())
                 .collect::<Vec<Employee>>(),
         )),
-        Err(scan_error) => Err(status::NotFound("Leg dich gehackt!".to_string())),
+        Err(scan_error) => Err(status::NotFound(scan_error.description().to_string())),
     }
 }
 
@@ -114,7 +113,6 @@ fn get_employees(
   -H 'Content-Type: application/x-www-form-urlencoded' \
   -d 'id=2&name=rust-update'
  */
-
 #[post("/employee", data = "<employee>")]
 fn put_employee(client: State<DynamoDbClient>, employee: Form<Employee>) -> String {
     let put_employee = PutItemInput {
@@ -141,14 +139,11 @@ fn main() {
         .mount(
             "/",
             routes![
-                area,
-                resource,
-                put_resource,
-                index,
-                get_employees,
-                put_employee,
-                files
-            ],
+index,
+get_employees,
+put_employee,
+files
+],
         ).manage(client)
         .launch();
 }
