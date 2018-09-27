@@ -11,14 +11,12 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_dynamodb;
-extern crate uuid;
 
 use rocket::request::Form;
 use rocket::response::NamedFile;
 use rocket::response::status;
 use rocket::State;
 use rocket_contrib::Json;
-use rusoto_core::Region;
 use rusoto_dynamodb::{
     DynamoDb, DynamoDbClient, PutItemInput, ScanInput,
 };
@@ -26,58 +24,97 @@ use std::error::Error;
 use std::io;
 use std::path::{Path, PathBuf};
 
-#[derive(FromForm, Serialize, Deserialize)]
-struct Employee {
-    id: String,
-    name: String,
-    model_type: String,
-}
+mod model;
+use model::*;
 
 #[derive(Serialize, Deserialize)]
 enum Place {
-    Desk {
-        id: String,
-        building: String,
-        floor: String,
-        coordinate: Vec<(i32, i32)>,
-        image: String,
 
-        employee: Option<Employee>,
-    },
-    Printer {
+    /**
+     * A piece of furniture positioned
+     * on a floor plan, e.g. a desk or rack
+     */
+    Furniture {
         id: String,
-        building: String,
-        floor: String,
-        coordinate: Vec<(i32, i32)>,
-        image: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
+        tags: Vec<String>,
+        model_type: String,
     },
+    /**
+     * A piece of utility equipment,
+     * e.g. a dish washer, washing machine, printer
+     */
+    Appliance {
+        description: String,
+        id: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
+        tags: Vec<String>,
+        model_type: String,
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+enum Region {
+    /**
+     * A generic area, e.g. room, stairwell
+     */
     Area {
         id: String,
-        building: String,
-        floor: String,
-        coordinate: Vec<(i32, i32)>,
-
+        name: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
         label: String,
-    }
-}
-
-impl Default for Employee {
-    fn default() -> Employee {
-        return Employee {
-            id: uuid::Uuid::new_v4().to_string(),
-            name: String::from("NewUser"),
-            model_type: String::from("Employee"),
-        };
-    }
-}
-
-impl Employee {
-    fn from_name(name: String) -> Self {
-        Employee {
-            name,
-            ..Employee::default()
-        }
-    }
+        tags: Vec<String>,
+        model_type: String,
+    },
+    /**
+     * A named meeting room
+     */
+    MeetingRoom {
+        id: String,
+        name: String,
+        description: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
+        label: String,
+        tags: Vec<String>,
+        model_type: String,
+    },
+    /**
+     * A loosely defined (project) work space
+     */
+    Workspace {
+        id: String,
+        name: String,
+        description: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
+        label: String,
+        tags: Vec<String>,
+        model_type: String,
+    },
+    /**
+     * Rooms housing shared functions such 
+     * as rest rooms, showers, elevators
+     */
+    Facility {
+        id: String,
+        name: String,
+        description: String,
+        building: Building,
+        floor: Floor,
+        coordinates: Vec<(i32, i32)>,
+        label: String,
+        tags: Vec<String>,
+        model_type: String,
+    },
 }
 
 #[get("/")]
@@ -133,7 +170,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::simple(Region::EuCentral1);
+    let client = DynamoDbClient::simple(rusoto_core::Region::EuCentral1);
 
     rocket::ignite()
         .mount(
