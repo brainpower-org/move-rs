@@ -1,27 +1,27 @@
 extern crate uuid;
 
 #[derive(Serialize, Deserialize, FromForm)]
-pub struct Employee {
+pub struct Person {
     id: String,
     name: String,
     model_type: String,
 }
 
-impl Default for Employee {
-    fn default() -> Employee {
-        return Employee {
+impl Default for Person {
+    fn default() -> Person {
+        return Person {
             id: uuid::Uuid::new_v4().to_string(),
             name: String::from("NewUser"),
-            model_type: String::from("Employee"),
+            model_type: String::from("Person"),
         };
     }
 }
 
-impl Employee {
+impl Person {
     fn from_name(name: String) -> Self {
-        Employee {
+        Person {
             name,
-            ..Employee::default()
+            ..Person::default()
         }
     }
 }
