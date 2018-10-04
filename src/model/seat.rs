@@ -1,6 +1,6 @@
 use Building;
-use Employee;
 use Floor;
+use Person;
 
 /**
  * Work place users can book into,
@@ -11,7 +11,7 @@ pub struct Seat {
     building: Building,
     floor: Floor,
     coordinates: Vec<(i32, i32)>,
-    user: Option<Employee>,
+    pub person: Option<Person>,
     tags: Vec<String>,
     model_type: String,
 }
