@@ -1,4 +1,4 @@
-use Building;
+use model::Building;
 
 /**
  * Floor inside a building

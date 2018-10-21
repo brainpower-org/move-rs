@@ -1,6 +1,6 @@
-use Building;
-use Floor;
-use Person;
+use model::Building;
+use model::Floor;
+use model::Person;
 
 /**
  * Work place users can book into,

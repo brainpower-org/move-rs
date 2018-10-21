@@ -12,111 +12,17 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_dynamodb;
 
-use rocket::request::{Form};
 use rocket::response::NamedFile;
-use rusoto_dynamodb::{DynamoDbClient};
+use rusoto_dynamodb::DynamoDbClient;
 use std::io;
 use std::path::{Path, PathBuf};
 
 mod model;
-use model::*;
-
 mod route;
-
-#[derive(Serialize, Deserialize)]
-enum Place {
-    /**
-     * A piece of utility equipment,
-     * e.g. a dish washer, washing machine, printer
-     */
-    Appliance {
-        description: String,
-        id: String,
-        building: Building,
-        floor: Floor,
-        coordinates: Vec<(i32, i32)>,
-        tags: Vec<String>,
-        model_type: String,
-    },
-}
-
-#[derive(Serialize, Deserialize)]
-enum Region {
-    /**
-     * A generic area, e.g. room, stairwell
-     */
-    Area {
-        id: String,
-        name: String,
-        building: Building,
-        floor: Floor,
-        coordinates: Vec<(i32, i32)>,
-        label: String,
-        tags: Vec<String>,
-        model_type: String,
-    },
-    /**
-     * A named meeting room
-     */
-    MeetingRoom {
-        id: String,
-        name: String,
-        description: String,
-        building: Building,
-        floor: Floor,
-        coordinates: Vec<(i32, i32)>,
-        label: String,
-        tags: Vec<String>,
-        model_type: String,
-    },
-    /**
-     * A loosely defined (project) work space
-     */
-    Workspace {
-        id: String,
-        name: String,
-        description: String,
-        building: Building,
-        floor: Floor,
-        coordinates: Vec<(i32, i32)>,
-        label: String,
-        tags: Vec<String>,
-        model_type: String,
-    },
-    /**
-     * Rooms housing shared functions such
-     * as rest rooms, showers, elevators
-     */
-    Facility {
-        id: String,
-        name: String,
-        description: String,
-        building: Building,
-        floor: Floor,
-        coordinates: Vec<(i32, i32)>,
-        label: String,
-        tags: Vec<String>,
-        model_type: String,
-    },
-}
 
 #[get("/")]
 fn index() -> io::Result<NamedFile> {
     NamedFile::open("static/index.html")
-}
-
-
-
-
-// http --verbose --form PUT localhost:8000/seat/1 id:=1
-#[put("/seat/<seat_id>", data = "<person_id>")]
-fn seat(seat_id: i32, person_id: Form<Id>) {
-    println!("{} {:?}", seat_id, person_id);
-}
-
-#[derive(Serialize, Deserialize, Debug, FromForm)]
-struct Id {
-    id: i32,
 }
 
 #[get("/<file..>", rank = 1)]
@@ -128,8 +34,12 @@ fn main() {
     let client = DynamoDbClient::simple(rusoto_core::Region::EuCentral1);
 
     rocket::ignite()
-        .mount("/", routes![index, seat, files])
-        .mount("/person", routes![route::person::put_person, route::person::get_persons])
+        .mount("/", routes![index, files])
+        .mount(
+            "/person",
+            routes![route::person::put_person, route::person::get_persons],
+        )
+        .mount("/seat", routes![route::seat::get_seat])
         .manage(client)
         .launch();
 }
