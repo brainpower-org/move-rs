@@ -31,7 +31,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::simple(rusoto_core::Region::EuCentral1);
+    let client = DynamoDbClient::new(rusoto_core::Region::EuCentral1);
 
     rocket::ignite()
         .mount("/", routes![index, files])

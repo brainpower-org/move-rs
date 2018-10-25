@@ -1,21 +1,21 @@
-use rusoto_dynamodb::{DynamoDb, DynamoDbClient, PutItemInput, ScanInput};
-use rocket_contrib::Json;
-use rocket::request::{Form};
+use rocket::request::Form;
 use rocket::response::status;
 use rocket::State;
+use rocket_contrib::Json;
+use rusoto_dynamodb::{DynamoDb, DynamoDbClient, PutItemInput, ScanInput};
 use std::error::Error;
 
 use model;
 
 /**
- * 
- * Call with curl
- * 
- * curl -X POST \
-  http://localhost:8000/person \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -d 'id=2&name=rust-update'
- */
+* 
+* Call with curl
+* 
+* curl -X POST \
+ http://localhost:8000/person \
+ -H 'Content-Type: application/x-www-form-urlencoded' \
+ -d 'id=2&name=rust-update'
+*/
 #[post("/", data = "<person>")]
 pub fn put_person(client: State<DynamoDbClient>, person: Form<model::Person>) -> String {
     let put_person = PutItemInput {
@@ -24,7 +24,7 @@ pub fn put_person(client: State<DynamoDbClient>, person: Form<model::Person>) ->
         ..Default::default()
     };
 
-    match client.put_item(&put_person).sync() {
+    match client.put_item(put_person).sync() {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }
@@ -37,7 +37,7 @@ pub fn get_persons(
     let mut scan_input = ScanInput::default();
     scan_input.table_name = String::from("rust-skillgroup");
 
-    match client.scan(&scan_input).sync() {
+    match client.scan(scan_input).sync() {
         Ok(scan_output) => Ok(Json(
             scan_output
                 .items
