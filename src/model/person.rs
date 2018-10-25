@@ -18,7 +18,8 @@ impl Default for Person {
 }
 
 impl Person {
-    fn from_name(name: String) -> Self {
+    #[allow(dead_code)]
+    pub fn from_name(name: String) -> Self {
         Person {
             name,
             ..Person::default()

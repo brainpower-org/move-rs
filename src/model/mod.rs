@@ -1,9 +1,21 @@
+mod appliance;
+mod area;
 mod building;
-mod employee;
+mod facility;
 mod floor;
+mod furniture;
+mod meeting_room;
+mod person;
 mod seat;
+mod workspace;
 
+pub use self::appliance::Appliance;
+pub use self::area::Area;
 pub use self::building::Building;
-pub use self::employee::Person;
+pub use self::facility::Facility;
 pub use self::floor::Floor;
+pub use self::furniture::Furniture;
+pub use self::meeting_room::MeetingRoom;
+pub use self::person::Person;
 pub use self::seat::Seat;
+pub use self::workspace::Workspace;
