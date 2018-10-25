@@ -4,13 +4,13 @@ version = "0.1.0"
 authors = ["rsteube <rsteube@users.noreply.github.com>"]
 
 [dependencies]
-rocket = "0.3.15"
-rocket_codegen = "0.3.15"
-rocket_contrib = "0.3.15"
-rusoto_dynamodb = "0.32"
-rusoto_core = "0.32"
+rocket = "0.3.17"
+rocket_codegen = "0.3.17"
+rocket_contrib = "0.3.17"
+rusoto_dynamodb = "0.34"
+rusoto_core = "0.34"
 serde = "1.0"
 serde_derive = "1.0"
-serde_dynamodb = "0.1.2"
+serde_dynamodb = { git = "https://github.com/mockersf/serde_dynamodb" }
 futures = "0.1"
 uuid = { version = "0.7", features = ["v4"] }

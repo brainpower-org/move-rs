@@ -12,7 +12,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_dynamodb;
 
-use rocket::request::{Form, FromForm};
+use rocket::request::Form;
 use rocket::response::status;
 use rocket::response::NamedFile;
 use rocket::State;
@@ -126,7 +126,7 @@ fn get_persons(
     let mut scan_input = ScanInput::default();
     scan_input.table_name = String::from("rust-skillgroup");
 
-    match client.scan(&scan_input).sync() {
+    match client.scan(scan_input).sync() {
         Ok(scan_output) => Ok(Json(
             scan_output
                 .items
@@ -140,13 +140,13 @@ fn get_persons(
 }
 
 /**
- * Call with curl
- * 
- * curl -X POST \
-  http://localhost:8000/person \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -d 'id=2&name=rust-update'
- */
+* Call with curl
+* 
+* curl -X POST \
+ http://localhost:8000/person \
+ -H 'Content-Type: application/x-www-form-urlencoded' \
+ -d 'id=2&name=rust-update'
+*/
 #[post("/person", data = "<person>")]
 fn put_person(client: State<DynamoDbClient>, person: Form<Person>) -> String {
     let put_person = PutItemInput {
@@ -155,7 +155,7 @@ fn put_person(client: State<DynamoDbClient>, person: Form<Person>) -> String {
         ..Default::default()
     };
 
-    match client.put_item(&put_person).sync() {
+    match client.put_item(put_person).sync() {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }
@@ -182,7 +182,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::simple(rusoto_core::Region::EuCentral1);
+    let client = DynamoDbClient::new(rusoto_core::Region::EuCentral1);
 
     rocket::ignite()
         .mount("/", routes![index, get_persons, put_person, seat, files])
