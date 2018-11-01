@@ -1,3 +1,4 @@
+#![feature(extern_prelude)]
 #![feature(plugin)]
 #![feature(custom_derive)]
 #![plugin(rocket_codegen)]
@@ -13,12 +14,12 @@ extern crate serde_derive;
 extern crate serde_dynamodb;
 
 use rocket::response::NamedFile;
-use rusoto_dynamodb::DynamoDbClient;
 use std::io;
 use std::path::{Path, PathBuf};
 
 mod model;
 mod route;
+mod move_app;
 
 #[get("/")]
 fn index() -> io::Result<NamedFile> {
@@ -31,7 +32,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
-    let client = DynamoDbClient::new(rusoto_core::Region::EuCentral1);
+    let app = move_app::Move::new();
 
     rocket::ignite()
         .mount("/", routes![index, files])
@@ -40,6 +41,6 @@ fn main() {
             routes![route::person::put_person, route::person::get_persons],
         )
         .mount("/seat", routes![route::seat::get_seat])
-        .manage(client)
+        .manage(app)
         .launch();
 }
