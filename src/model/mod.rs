@@ -11,7 +11,7 @@ mod workspace;
 
 pub use self::appliance::Appliance;
 pub use self::area::Area;
-pub use self::building::Building;
+pub use self::building::{Building, GeoCoordinate};
 pub use self::facility::Facility;
 pub use self::floor::Floor;
 pub use self::furniture::Furniture;

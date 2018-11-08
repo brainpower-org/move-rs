@@ -5,11 +5,11 @@ use model::Building;
  */
 #[derive(Serialize, Deserialize)]
 pub struct Floor {
-    id: String,
-    name: String,
-    description: String,
-    building: Building,
-    coordinates: Vec<(i32, i32)>,
-    tags: Vec<String>,
-    model_type: String,
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub building: Building,
+    pub coordinates: Vec<(i32, i32)>,
+    pub tags: Vec<String>,
+    pub model_type: String,
 }

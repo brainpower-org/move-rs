@@ -2,6 +2,15 @@
 
 ## Log
 
+### 2018-11-8
+
+* Added Building route
+* Decided for CRUD naming scheme in the controller
+* HTTP method names for route names
+* Implemented FromFormValue trait for GeoCoordinate struct
+* serde_dynamodb can't handle tuples, so we used a struct for geo coordinates
+* All model struct attributes are now public. Good idea?
+
 ### 2018-11-1 
 
 * Question: Where to define behaviour on data?

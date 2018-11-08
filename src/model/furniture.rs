@@ -7,10 +7,10 @@ use model::Floor;
  */
 #[derive(Serialize, Deserialize)]
 pub struct Furniture {
-    id: String,
-    building: Building,
-    floor: Floor,
-    coordinates: Vec<(i32, i32)>,
-    tags: Vec<String>,
-    model_type: String,
+    pub id: String,
+    pub building: Building,
+    pub floor: Floor,
+    pub coordinates: Vec<(i32, i32)>,
+    pub tags: Vec<String>,
+    pub model_type: String,
 }
