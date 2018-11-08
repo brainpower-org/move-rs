@@ -1,5 +1,11 @@
 extern crate uuid;
 
+#[derive(FromForm)]
+pub struct PutPersonPayload {
+    name: String,
+    model_type: String,
+}
+
 #[derive(Serialize, Deserialize, FromForm)]
 pub struct Person {
     id: String,
