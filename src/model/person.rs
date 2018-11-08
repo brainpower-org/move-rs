@@ -8,9 +8,9 @@ pub struct PutPersonPayload {
 
 #[derive(Serialize, Deserialize, FromForm)]
 pub struct Person {
-    id: String,
-    name: String,
-    model_type: String,
+    pub id: String,
+    pub name: String,
+    pub model_type: String,
 }
 
 impl Default for Person {

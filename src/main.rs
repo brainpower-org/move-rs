@@ -18,8 +18,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 mod model;
-mod route;
 mod move_app;
+mod route;
 
 #[get("/")]
 fn index() -> io::Result<NamedFile> {
@@ -36,11 +36,11 @@ fn main() {
 
     rocket::ignite()
         .mount("/", routes![index, files])
+        .mount("/building", routes![route::building::put_building])
         .mount(
             "/person",
             routes![route::person::put_person, route::person::get_persons],
-        )
-        .mount("/seat", routes![route::seat::get_seat])
+        ).mount("/seat", routes![route::seat::get_seat])
         .manage(app)
         .launch();
 }
