@@ -74,7 +74,7 @@ mod test {
     fn geo_coordinate_from_form_value_valid_parsing() {
         let raw_str = RawStr::from_str("10.123,20");
         let result = GeoCoordinate::from_form_value(raw_str);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             GeoCoordinate {
@@ -88,20 +88,20 @@ mod test {
     fn geo_coordinate_from_form_value_to_many_params() {
         let raw_str = RawStr::from_str("10.123,20,30");
         let result = GeoCoordinate::from_form_value(raw_str);
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 
     #[test]
     fn geo_coordinate_from_form_value_cant_parse_to_float() {
         let raw_str = RawStr::from_str("10.123,jsdhgf,30");
         let result = GeoCoordinate::from_form_value(raw_str);
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 
     #[test]
     fn geo_coordinate_from_form_value_less_then_two_parts() {
         let raw_str = RawStr::from_str("10.123");
         let result = GeoCoordinate::from_form_value(raw_str);
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 }
