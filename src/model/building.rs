@@ -15,7 +15,7 @@ pub struct Building {
     pub model_type: String,
 }
 
-#[derive(FromForm, Serialize, Deserialize)]
+#[derive(FromForm, Serialize, Deserialize, Debug, PartialEq)]
 pub struct GeoCoordinate {
     pub lat: f32,
     pub lng: f32,
@@ -63,5 +63,45 @@ impl Building {
             geo_coordinate,
             ..Building::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn geo_coordinate_from_form_value_valid_parsing() {
+        let raw_str = RawStr::from_str("10.123,20");
+        let result = GeoCoordinate::from_form_value(raw_str);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(
+            result.unwrap(),
+            GeoCoordinate {
+                lat: 10.123,
+                lng: 20.0,
+            }
+        );
+    }
+
+    #[test]
+    fn geo_coordinate_from_form_value_to_many_params() {
+        let raw_str = RawStr::from_str("10.123,20,30");
+        let result = GeoCoordinate::from_form_value(raw_str);
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn geo_coordinate_from_form_value_cant_parse_to_float() {
+        let raw_str = RawStr::from_str("10.123,jsdhgf,30");
+        let result = GeoCoordinate::from_form_value(raw_str);
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn geo_coordinate_from_form_value_less_then_two_parts() {
+        let raw_str = RawStr::from_str("10.123");
+        let result = GeoCoordinate::from_form_value(raw_str);
+        assert_eq!(result.is_err(), true);
     }
 }
