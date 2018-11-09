@@ -18,7 +18,7 @@ use move_app;
 */
 #[post("/", data = "<person>")]
 pub fn put_person(
-    app: State<move_app::Move>,
+    app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
     person: Form<move_app::CreatePersonPayload>,
 ) -> String {
     match app.create_person(person.into_inner()) {
@@ -29,7 +29,7 @@ pub fn put_person(
 
 #[get("/all")]
 pub fn get_persons(
-    app: State<move_app::Move>,
+    app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
 ) -> Result<Json<Vec<model::Person>>, status::NotFound<String>> {
     app.read_persons()
         .map(|persons| Json(persons))
