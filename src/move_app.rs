@@ -1,6 +1,7 @@
 use model;
-use rusoto_dynamodb::{DynamoDb, DynamoDbClient, PutItemError, PutItemInput, PutItemOutput,
-                      ScanError, ScanInput};
+use rusoto_dynamodb::{
+    DynamoDb, DynamoDbClient, PutItemError, PutItemInput, PutItemOutput, ScanError, ScanInput,
+};
 
 #[derive(Debug)]
 pub struct Move<T> {
@@ -46,17 +47,16 @@ impl<T: DynamoDb> Move<T> {
         scan_input.table_name = self.table_name.clone();
 
         match self.db.scan(scan_input).sync() {
-            Ok(scan_output) => Ok(
-                scan_output
+            Ok(scan_output) => {
+                println!("{:?}", scan_output.items);
+                Ok(scan_output
                     .items
                     .unwrap_or_else(|| vec![])
                     .into_iter()
-                    .map(|item| {
-                        serde_dynamodb::from_hashmap::<model::Person>(item).unwrap()
-                    })
+                    .map(|item| serde_dynamodb::from_hashmap::<model::Person>(item).unwrap())
                     .filter(|person| person.model_type == String::from("Person"))
-                    .collect::<Vec<model::Person>>(),
-            ),
+                    .collect::<Vec<model::Person>>())
+            }
             Err(scan_error) => Err(scan_error),
         }
     }
@@ -85,13 +85,15 @@ impl<T: DynamoDb> Move<T> {
 #[cfg(test)]
 mod test {
     use super::Move;
+    use futures::prelude::*;
+    use mocks::DynamoDbMock;
+    use mocktopus::mocking::*;
+    use model;
     use rusoto_core::RusotoFuture;
     use rusoto_dynamodb::*;
-    use mocktopus::mocking::*;
+    use std::collections::HashMap;
     use std::time::{Duration, Instant};
-    use futures::prelude::*;
     use tokio_timer::Delay;
-    use mocks::DynamoDbMock;
 
     #[test]
     fn read_persons_failes() {
@@ -133,5 +135,63 @@ mod test {
 
         let persons = move_app.read_persons();
         assert!(persons.is_ok());
+    }
+
+    #[test]
+    fn read_persons_filter_none_person_objects() {
+        let move_app = Move {
+            db: DynamoDbMock {},
+            table_name: String::from("test"),
+        };
+
+        DynamoDbMock::scan.mock_safe(|_, _| {
+            let deadline = Instant::now() + Duration::from_secs(3);
+
+            let item_building = serde_dynamodb::to_hashmap(&model::Building {
+                id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
+                model_type: "Building".to_string(),
+                name: "HausH".to_string(),
+                geo_coordinate: model::GeoCoordinate { lat: 0.0, lng: 0.0 },
+                address: "".to_string(),
+                phone_number: "".to_string(),
+                email: "".to_string(),
+            })
+            .unwrap();
+
+            let item_person = serde_dynamodb::to_hashmap(&model::Person {
+                id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
+                model_type: "Person".to_string(),
+                name: "HausH".to_string(),
+            })
+            .unwrap();
+
+            let mut item_karpott = HashMap::new();
+            item_karpott.insert(
+                "id".to_string(),
+                AttributeValue {
+                    s: Some("18237".to_string()),
+                    ..AttributeValue::default()
+                },
+            );
+
+            let output = ScanOutput {
+                count: Some(3),
+                scanned_count: Some(3),
+                items: Some(vec![item_person, item_building, item_karpott]),
+                ..Default::default()
+            };
+
+            let future = RusotoFuture::from_future(
+                Delay::new(deadline)
+                    .map_err(|_| ScanError::Validation("Invalid bucket".to_string()))
+                    .map(|_| output),
+            );
+
+            MockResult::Return(future)
+        });
+
+        let persons = move_app.read_persons();
+        assert!(persons.is_ok());
+        assert_eq!(persons.unwrap().len(), 1);
     }
 }

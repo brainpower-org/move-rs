@@ -1,6 +1,14 @@
 # move-rs
 
+## Future plans
+
+* Breakout session for new/strange/exiting/scary language features
+* * Spread operator in scructs (..Default::default), order
+
 ## Log
+
+### 2018-11-13
+* Added unit test for reading persons with dynamodb mock
 
 ### 2018-11-8
 
