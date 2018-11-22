@@ -7,6 +7,10 @@
 
 ## Log
 
+### 2018-11-22
+* Add unit tests for `create_person`
+* Wrestle with `Delay` a bit
+
 ### 2018-11-13
 * Added unit test for reading persons with dynamodb mock
 

@@ -84,7 +84,7 @@ impl<T: DynamoDb> Move<T> {
 
 #[cfg(test)]
 mod test {
-    use super::Move;
+    use super::*;
     use futures::prelude::*;
     use mocks::DynamoDbMock;
     use mocktopus::mocking::*;
@@ -110,6 +110,74 @@ mod test {
 
         let persons = move_app.read_persons();
         assert!(persons.is_err());
+    }
+
+    #[test]
+    fn create_person_fails() {
+        let move_app = Move {
+            db: DynamoDbMock {},
+            table_name: String::from("test"),
+        };
+
+        DynamoDbMock::put_item.mock_safe(|_, _| {
+            MockResult::Return(
+                Err(PutItemError::Validation(
+                    "This put_item should fail".to_string(),
+                ))
+                .into(),
+            )
+        });
+
+        let person = move_app.create_person(CreatePersonPayload {
+            name: String::from("Testuser"),
+        });
+        assert!(person.is_err());
+    }
+
+    #[test]
+    fn create_person_success() {
+        let move_app = Move {
+            db: DynamoDbMock {},
+            table_name: String::from("test"),
+        };
+
+        DynamoDbMock::put_item.mock_safe(|_, input| {
+            let deadline = Instant::now() + Duration::from_secs(3);
+            let output = PutItemOutput {
+                ..Default::default()
+            };
+
+            let future = RusotoFuture::from_future(
+                Delay::new(deadline)
+                    .map_err(|_| PutItemError::Validation("Invalid bucket".to_string()))
+                    .map(|_| output),
+            );
+
+            MockResult::Return(future)
+        });
+
+        let person = move_app.create_person(CreatePersonPayload {
+            name: String::from("Testuser"),
+        });
+
+        assert!(person.is_ok());
+    }
+
+    #[test]
+    fn create_person_correct_input() {
+        let move_app = Move {
+            db: DynamoDbMock {},
+            table_name: String::from("test"),
+        };
+
+        DynamoDbMock::put_item.mock_safe(|_, input| {
+            assert_eq!("Bob", input.item.get("name").unwrap().clone().s.unwrap());
+            MockResult::Return(Err(PutItemError::Validation("Irrelephant".to_string())).into())
+        });
+
+        move_app.create_person(CreatePersonPayload {
+            name: String::from("Bob"),
+        });
     }
 
     #[test]
@@ -145,7 +213,7 @@ mod test {
         };
 
         DynamoDbMock::scan.mock_safe(|_, _| {
-            let deadline = Instant::now() + Duration::from_secs(3);
+            let deadline = Instant::now();
 
             let item_building = serde_dynamodb::to_hashmap(&model::Building {
                 id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
