@@ -86,14 +86,13 @@ impl<T: DynamoDb> Move<T> {
 mod test {
     use super::*;
     use futures::prelude::*;
+    use futures::future;
     use mocks::DynamoDbMock;
     use mocktopus::mocking::*;
     use model;
     use rusoto_core::RusotoFuture;
     use rusoto_dynamodb::*;
     use std::collections::HashMap;
-    use std::time::{Duration, Instant};
-    use tokio_timer::Delay;
 
     #[test]
     fn read_persons_failes() {
@@ -142,18 +141,13 @@ mod test {
         };
 
         DynamoDbMock::put_item.mock_safe(|_, input| {
-            let deadline = Instant::now() + Duration::from_secs(3);
             let output = PutItemOutput {
                 ..Default::default()
             };
 
-            let future = RusotoFuture::from_future(
-                Delay::new(deadline)
-                    .map_err(|_| PutItemError::Validation("Invalid bucket".to_string()))
-                    .map(|_| output),
-            );
-
-            MockResult::Return(future)
+             MockResult::Return(RusotoFuture::from_future(
+                future::ok(output)
+            ))
         });
 
         let person = move_app.create_person(CreatePersonPayload {
@@ -188,17 +182,12 @@ mod test {
         };
 
         DynamoDbMock::scan.mock_safe(|_, _| {
-            let deadline = Instant::now() + Duration::from_secs(3);
             let output = ScanOutput {
                 ..Default::default()
             };
-            let future = RusotoFuture::from_future(
-                Delay::new(deadline)
-                    .map_err(|_| ScanError::Validation("Invalid bucket".to_string()))
-                    .map(|_| output),
-            );
-
-            MockResult::Return(future)
+            MockResult::Return(RusotoFuture::from_future(
+                future::ok(output)
+            ))
         });
 
         let persons = move_app.read_persons();
@@ -213,7 +202,6 @@ mod test {
         };
 
         DynamoDbMock::scan.mock_safe(|_, _| {
-            let deadline = Instant::now();
 
             let item_building = serde_dynamodb::to_hashmap(&model::Building {
                 id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
@@ -249,13 +237,9 @@ mod test {
                 ..Default::default()
             };
 
-            let future = RusotoFuture::from_future(
-                Delay::new(deadline)
-                    .map_err(|_| ScanError::Validation("Invalid bucket".to_string()))
-                    .map(|_| output),
-            );
-
-            MockResult::Return(future)
+             MockResult::Return(RusotoFuture::from_future(
+                future::ok(output)
+            ))
         });
 
         let persons = move_app.read_persons();
