@@ -1,5 +1,6 @@
 #![feature(plugin, proc_macro_hygiene, decl_macro)]
 
+extern crate dotenv;
 extern crate futures;
 #[macro_use]
 extern crate rocket;
@@ -16,9 +17,12 @@ extern crate mocktopus;
 #[cfg(test)]
 extern crate tokio_timer;
 
+use dotenv::dotenv;
 use rocket::response::NamedFile;
+use std::env;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 
 mod model;
 mod move_app;
@@ -38,6 +42,17 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
+    let env_result = match dotenv() {
+        Ok(r) => Ok(format!("using env vars from: {:?}", r)),
+        Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
+        Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
+        Err(dotenv::Error::EnvVar(key)) => Err(format!("error: {:?}", key)),
+    };
+
+    if env_result.is_err() {
+        println!("{}",env_result.err().unwrap());
+        exit(1)
+    }
     let app = move_app::Move::<rusoto_dynamodb::DynamoDbClient>::new();
 
     rocket::ignite()
