@@ -45,14 +45,8 @@ impl Default for Building {
         return Building {
             id: uuid::Uuid::new_v4().to_string(),
             name: String::from("New Building"),
-            address: Default::default(),
-            phone_number: Default::default(),
-            email: Default::default(),
-            geo_coordinate: GeoCoordinate {
-                lat: Default::default(),
-                lng: Default::default(),
-            },
             model_type: String::from("Building"),
+            ..Default::default()
         };
     }
 }
