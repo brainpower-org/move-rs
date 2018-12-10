@@ -1,8 +1,7 @@
-#![feature(plugin)]
-#![feature(custom_derive)]
-#![plugin(rocket_codegen)]
+#![feature(plugin, proc_macro_hygiene, decl_macro)]
 
 extern crate futures;
+#[macro_use]
 extern crate rocket;
 extern crate rocket_contrib;
 extern crate rusoto_core;

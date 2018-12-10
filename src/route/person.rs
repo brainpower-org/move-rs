@@ -1,7 +1,7 @@
 use rocket::request::Form;
 use rocket::response::status;
 use rocket::State;
-use rocket_contrib::Json;
+use rocket_contrib::json::Json;
 use std::error::Error;
 
 use model;

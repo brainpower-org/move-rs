@@ -4,9 +4,8 @@ version = "0.1.0"
 authors = ["rsteube <rsteube@users.noreply.github.com>"]
 
 [dependencies]
-rocket = "0.3.17"
-rocket_codegen = "0.3.17"
-rocket_contrib = "0.3.17"
+rocket = "0.4"
+rocket_contrib = "0.4"
 rusoto_dynamodb = "0.35"
 rusoto_core = "0.35"
 serde = "1.0"
