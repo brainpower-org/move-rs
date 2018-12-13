@@ -1,5 +1,5 @@
 #![feature(plugin, proc_macro_hygiene, decl_macro)]
-
+#![feature(extern_prelude)]
 extern crate dotenv;
 extern crate futures;
 #[macro_use]
@@ -42,8 +42,14 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
+    // If env vars set and .env is present: fail fast (and tell what to do)
+    // let has_relevant_vars = ...;
+    let var_config = MoveConfig::from_vars();
+
     let env_result = match dotenv() {
-        Ok(r) => Ok(format!("using env vars from: {:?}", r)),
+        Ok(r) => {
+            Ok(format!("using env vars from: {:?}", r))
+        },
         Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
         Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
         Err(dotenv::Error::EnvVar(key)) => Err(format!("error: {:?}", key)),
@@ -53,6 +59,7 @@ fn main() {
         println!("{}",env_result.err().unwrap());
         exit(1)
     }
+    
     let app = move_app::Move::<rusoto_dynamodb::DynamoDbClient>::new();
 
     rocket::ignite()
@@ -66,3 +73,34 @@ fn main() {
         .manage(app)
         .launch();
 }
+
+struct MoveConfig {
+    id: String,
+    key: String,
+}
+
+impl MoveConfig {
+    fn from_vars() -> Result<MoveConfig, MoveConfigError> {
+        //  AWS_ACCESS_KEY_ID=key-id
+        // AWS_SECRET_ACCESS_KEY=access-key
+        let id = std::env::var("AWS_ACCESS_KEY_ID");
+        let key = std::env::var("AWS_SECRET_ACCESS_KEY");
+
+        match (id, key) {
+            (Ok(id), Ok(key)) => Ok(MoveConfig { id, key }),
+            (id, key) => Err(MoveConfigError { id, key })
+        }
+    }
+}
+
+struct MoveConfigError {
+    id: Result<String, std::env::VarError>,
+    key: Result<String, std::env::VarError>
+}
+
+impl MoveConfigError {
+    pub fn is_empty(&self) -> bool {
+        self.id.is_err() && self.key.is_err()
+    }
+}
+
