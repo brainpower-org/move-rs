@@ -47,8 +47,12 @@ fn main() {
     let var_config = MoveConfig::from_vars();
 
     let env_result = match dotenv() {
-        Ok(r) => {
-            Ok(format!("using env vars from: {:?}", r))
+        Ok(r) => match var_config {
+            Err(ref config) if config.is_empty() => Ok(format!("using env vars from: {:?}", r)),
+            _ => Err(format!(
+                "Stupid! either set all env vars, or define a complete .env file: {:?}",
+                var_config
+            )),
         },
         Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
         Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
@@ -56,10 +60,10 @@ fn main() {
     };
 
     if env_result.is_err() {
-        println!("{}",env_result.err().unwrap());
+        println!("{}", env_result.err().unwrap());
         exit(1)
     }
-    
+
     let app = move_app::Move::<rusoto_dynamodb::DynamoDbClient>::new();
 
     rocket::ignite()
@@ -74,33 +78,44 @@ fn main() {
         .launch();
 }
 
+#[derive(Debug)]
 struct MoveConfig {
-    id: String,
-    key: String,
+    id: ConfigItem,
+    key: ConfigItem,
 }
 
 impl MoveConfig {
-    fn from_vars() -> Result<MoveConfig, MoveConfigError> {
-        //  AWS_ACCESS_KEY_ID=key-id
-        // AWS_SECRET_ACCESS_KEY=access-key
-        let id = std::env::var("AWS_ACCESS_KEY_ID");
-        let key = std::env::var("AWS_SECRET_ACCESS_KEY");
+    fn from_vars() -> Result<MoveConfig, MoveConfig> {
+        let mut config = MoveConfig::new();
+        config.id.value = std::env::var(&config.id.name);
+        config.key.value = std::env::var(&config.key.name);
 
-        match (id, key) {
-            (Ok(id), Ok(key)) => Ok(MoveConfig { id, key }),
-            (id, key) => Err(MoveConfigError { id, key })
+        if !config.is_empty() {
+            return Ok(config);
+        }
+        Err(config)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.id.value.is_err() && self.key.value.is_err()
+    }
+
+    fn new() -> Self {
+        MoveConfig {
+            id: ConfigItem {
+                name: "AWS_ACCESS_KEY_ID".to_string(),
+                value: Err(std::env::VarError::NotPresent),
+            },
+            key: ConfigItem {
+                name: "AWS_SECRET_ACCESS_KEY".to_string(),
+                value: Err(std::env::VarError::NotPresent),
+            },
         }
     }
 }
 
-struct MoveConfigError {
-    id: Result<String, std::env::VarError>,
-    key: Result<String, std::env::VarError>
+#[derive(Debug)]
+struct ConfigItem {
+    name: String,
+    value: Result<String, std::env::VarError>,
 }
-
-impl MoveConfigError {
-    pub fn is_empty(&self) -> bool {
-        self.id.is_err() && self.key.is_err()
-    }
-}
-
