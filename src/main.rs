@@ -1,5 +1,4 @@
 #![feature(plugin, proc_macro_hygiene, decl_macro)]
-#![feature(extern_prelude)]
 extern crate dotenv;
 extern crate futures;
 #[macro_use]
@@ -102,14 +101,13 @@ impl MoveConfig {
         self.id.value.is_ok() && self.key.value.is_ok()
     }
 
-    pub fn valid_keys(&self) -> Vec<String> {
-        let that = self.clone();
-        let valid_keys = vec![that.clone().id, that.clone().key];
+    pub fn valid_keys(&self) -> Vec<&String> {
+        let valid_keys = vec![&self.id, &self.key];
         valid_keys
             .iter()
             .filter_map(|key| { 
                 if key.value.is_ok() {
-                    Some(key.name)
+                    Some(&key.name)
                 } else {
                     None
                 }
