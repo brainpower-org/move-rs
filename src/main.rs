@@ -16,6 +16,8 @@ extern crate clap;
 #[cfg(test)]
 extern crate mocktopus;
 #[cfg(test)]
+use mocktopus::macros::*;
+#[cfg(test)]
 extern crate tokio_timer;
 
 use dotenv::dotenv;
@@ -42,18 +44,24 @@ fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
-fn validate_config() -> Result<String, String> {
-    let config = MoveConfig::from_vars();
+#[cfg_attr(test, mockable)]
+fn dotenv_wrapper() -> dotenv::Result<std::path::PathBuf> {
+    dotenv()
+}
 
-    match dotenv() {
-        Ok(ref r) if config.is_empty() => Ok(format!("using env vars from: {:?}", r)),
+fn validate_config() -> Result<String, String> {
+    let env_config = MoveConfig::from_vars();
+
+    match dotenv_wrapper() {
+        Ok(ref r) if env_config.is_empty() => Ok(format!("using env vars from file: {:?}", r)),
         Ok(ref r) => Err(format!(
             "Mixing env vars and .env file is not supported. You have two options \n \
              1. Delete file: {:?} \n \
              2. Unset env vars {:?}",
             r,
-            config.valid_keys()
+            env_config.valid_keys()
         )),
+        Err(dotenv::Error::Io(ref e)) if e.kind() == std::io::ErrorKind::NotFound && env_config.is_valid() => Ok(format!("using env vars from process")),
         Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
         Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
         Err(dotenv::Error::EnvVar(key)) => Err(format!("error: {:?}", key)),
@@ -150,4 +158,72 @@ impl MoveConfig {
 struct ConfigItem {
     name: String,
     value: Result<String, std::env::VarError>,
+}
+
+#[cfg(test)]
+mod test {
+    use mocktopus::mocking::*;
+    use super::{dotenv_wrapper, validate_config};
+
+    fn setup() {
+        std::env::set_var("AWS_ACCESS_KEY_ID", "MOCKED_ACCESS_ID");
+        std::env::set_var("AWS_SECRET_ACCESS_KEY", "MOCKED_ACCESS_KEY");
+    }
+
+    fn teardown() {
+        std::env::remove_var("AWS_ACCESS_KEY_ID");
+        std::env::remove_var("AWS_SECRET_ACCESS_KEY");
+    }
+
+    #[test]
+    fn validation_config_uses_dotenv_for_empty_env() {
+        teardown();
+
+        dotenv_wrapper.mock_safe(|| MockResult::Return(Ok(std::path::PathBuf::from("./mocked-env"))));
+
+        let validation_result = validate_config();
+
+        assert!(validation_result.is_ok());
+        assert_eq!(validation_result.unwrap(), format!("using env vars from file: {:?}", std::path::PathBuf::from("./mocked-env").to_str().unwrap()));
+    }
+
+    #[test]
+    fn validation_config_env_file_not_available_but_env_is_available() {
+        setup();
+
+        dotenv_wrapper.mock_safe(|| MockResult::Return(
+            Err(
+                dotenv::Error::Io(
+                    std::io::Error::new(std::io::ErrorKind::NotFound, "File not found")
+                )
+            )
+        ));
+
+        let validation_result = validate_config();
+
+        assert!(validation_result.is_ok());
+        assert_eq!(validation_result.unwrap(), "using env vars from process");
+
+        teardown();
+    }
+
+    #[test]
+    fn validation_config_env_file_not_accessible() {
+        setup();
+
+        dotenv_wrapper.mock_safe(|| MockResult::Return(
+            Err(
+                dotenv::Error::Io(
+                    std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Permission denied")
+                )
+            )
+        ));
+
+        let validation_result = validate_config();
+
+        assert!(validation_result.is_err());
+        assert_eq!(validation_result.err().unwrap(), "Permission denied");
+
+        teardown();
+    }
 }
