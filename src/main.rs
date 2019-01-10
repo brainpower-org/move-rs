@@ -10,6 +10,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_dynamodb;
+#[macro_use]
+extern crate clap;
 
 #[cfg(test)]
 extern crate mocktopus;
@@ -40,12 +42,10 @@ fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
-fn main() {
-    // If env vars set and .env is present: fail fast (and tell what to do)
-    // let has_relevant_vars = ...;
+fn validate_config() -> Result<String, String> {
     let config = MoveConfig::from_vars();
 
-    let env_result = match dotenv() {
+    match dotenv() {
         Ok(ref r) if config.is_empty() => Ok(format!("using env vars from: {:?}", r)),
         Ok(ref r) => Err(format!(
             "Mixing env vars and .env file is not supported. You have two options \n \
@@ -57,13 +57,10 @@ fn main() {
         Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
         Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
         Err(dotenv::Error::EnvVar(key)) => Err(format!("error: {:?}", key)),
-    };
-
-    if env_result.is_err() {
-        println!("{}", env_result.err().unwrap());
-        exit(1)
     }
+}
 
+fn start_app() {
     let app = move_app::Move::<rusoto_dynamodb::DynamoDbClient>::new();
 
     rocket::ignite()
@@ -76,6 +73,26 @@ fn main() {
         .mount("/seat", routes![route::seat::get_seat])
         .manage(app)
         .launch();
+}
+
+fn main() {
+    let matches = clap_app!(myapp =>
+        (version: "1.0")
+        (@arg preflight: -p "only perform preflight checks")
+    ).get_matches();
+
+    // let has_relevant_vars = ...;
+    let env_result =  validate_config();
+
+    if env_result.is_err() {
+        println!("{}", env_result.err().unwrap());
+        exit(1)
+    }
+
+    if matches.is_present("preflight") {
+        exit(0)
+    }
+    start_app();
 }
 
 #[derive(Debug)]
