@@ -44,27 +44,32 @@ fn files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
+#[derive(Debug)]
+enum ConfigValidationError{
+    Io(std::io::ErrorKind),
+    MixedEnv(String),
+    DotenvParsing(String)
+}
+
 #[cfg_attr(test, mockable)]
 fn dotenv_wrapper() -> dotenv::Result<std::path::PathBuf> {
     dotenv()
 }
 
-fn validate_config() -> Result<String, String> {
-    let env_config = MoveConfig::from_vars();
-
+fn validate_config(env_config: MoveConfig) -> Result<String, ConfigValidationError> {
     match dotenv_wrapper() {
         Ok(ref r) if env_config.is_empty() => Ok(format!("using env vars from file: {:?}", r)),
-        Ok(ref r) => Err(format!(
+        Ok(ref r) => Err(ConfigValidationError::MixedEnv(format!(
             "Mixing env vars and .env file is not supported. You have two options \n \
              1. Delete file: {:?} \n \
              2. Unset env vars {:?}",
             r,
             env_config.valid_keys()
-        )),
+        ))),
         Err(dotenv::Error::Io(ref e)) if e.kind() == std::io::ErrorKind::NotFound && env_config.is_valid() => Ok(format!("using env vars from process")),
-        Err(dotenv::Error::Io(e)) => Err(format!("{}", e)),
-        Err(dotenv::Error::LineParse(key)) => Err(format!("found invalid line in .env: {:?}", key)),
-        Err(dotenv::Error::EnvVar(key)) => Err(format!("error: {:?}", key)),
+        Err(dotenv::Error::Io(e)) => Err(ConfigValidationError::Io(e.kind())),
+        Err(dotenv::Error::LineParse(key)) => Err(ConfigValidationError::DotenvParsing(format!("found invalid line in .env: {:?}", key))),
+        Err(dotenv::Error::EnvVar(key)) => Err(ConfigValidationError::DotenvParsing(format!("error: {:?}", key))),
     }
 }
 
@@ -90,10 +95,11 @@ fn main() {
     ).get_matches();
 
     // let has_relevant_vars = ...;
-    let env_result =  validate_config();
+    let env_config = MoveConfig::from_vars();
+    let env_result =  validate_config(env_config);
 
     if env_result.is_err() {
-        println!("{}", env_result.err().unwrap());
+        println!("{:?}", env_result.err().unwrap());
         exit(1)
     }
 
@@ -163,34 +169,48 @@ struct ConfigItem {
 #[cfg(test)]
 mod test {
     use mocktopus::mocking::*;
-    use super::{dotenv_wrapper, validate_config};
+    use super::{dotenv_wrapper, validate_config, MoveConfig, ConfigItem, ConfigValidationError};
 
-    fn setup() {
-        std::env::set_var("AWS_ACCESS_KEY_ID", "MOCKED_ACCESS_ID");
-        std::env::set_var("AWS_SECRET_ACCESS_KEY", "MOCKED_ACCESS_KEY");
-    }
-
-    fn teardown() {
-        std::env::remove_var("AWS_ACCESS_KEY_ID");
-        std::env::remove_var("AWS_SECRET_ACCESS_KEY");
+    fn setup() -> MoveConfig {
+        MoveConfig {
+            id: ConfigItem {
+                name: "AWS_ACCESS_KEY_ID".to_string(),
+                value: Ok("MOCKED_ACCESS_ID".to_string()),
+            },
+            key: ConfigItem {
+                name: "AWS_SECRET_ACCESS_KEY".to_string(),
+                value: Ok("MOCKED_ACCESS_KEY".to_string()),
+            },
+        }
     }
 
     #[test]
     fn validation_config_uses_dotenv_for_empty_env() {
-        teardown();
-
+        let env_config = MoveConfig::new();
         dotenv_wrapper.mock_safe(|| MockResult::Return(Ok(std::path::PathBuf::from("./mocked-env"))));
 
-        let validation_result = validate_config();
+        let validation_result = validate_config(env_config);
 
         assert!(validation_result.is_ok());
         assert_eq!(validation_result.unwrap(), format!("using env vars from file: {:?}", std::path::PathBuf::from("./mocked-env").to_str().unwrap()));
     }
 
     #[test]
-    fn validation_config_env_file_not_available_but_env_is_available() {
-        setup();
+    fn validation_config_uses_dotenv_with_existing_env() {
+        let env_config = setup();
+        dotenv_wrapper.mock_safe(|| MockResult::Return(Ok(std::path::PathBuf::from("./mocked-env"))));
 
+        let validation_result = validate_config(env_config);
+
+        match validation_result {
+            Err(ConfigValidationError::MixedEnv(_)) => assert!(true),
+            x => assert!(false, "Wrong result type: {:?}, should be ConfigValidationError::MixedEnv", x),
+        };
+    }
+
+    #[test]
+    fn validation_config_env_file_not_found_but_env_is_valid() {
+        let env_config = setup();
         dotenv_wrapper.mock_safe(|| MockResult::Return(
             Err(
                 dotenv::Error::Io(
@@ -199,18 +219,34 @@ mod test {
             )
         ));
 
-        let validation_result = validate_config();
+        let validation_result = validate_config(env_config);
 
         assert!(validation_result.is_ok());
         assert_eq!(validation_result.unwrap(), "using env vars from process");
-
-        teardown();
     }
 
     #[test]
-    fn validation_config_env_file_not_accessible() {
-        setup();
+    fn validation_config_env_file_not_found_and_env_is_invalid() {
+        let env_config = MoveConfig::new();
+        dotenv_wrapper.mock_safe(|| MockResult::Return(
+            Err(
+                dotenv::Error::Io(
+                    std::io::Error::new(std::io::ErrorKind::NotFound, "File not found")
+                )
+            )
+        ));
 
+        let validation_result = validate_config(env_config);
+
+        match validation_result {
+            Err(ConfigValidationError::Io(std::io::ErrorKind::NotFound)) => assert!(true),
+            x => assert!(false, "Wrong result type: {:?}, should be ConfigValidationError::Io(std::io::ErrorKind::NotFound)", x),
+        };
+    }
+
+    #[test]
+    fn validation_config_exposes_io_error_kinds() {
+        let env_config = setup();
         dotenv_wrapper.mock_safe(|| MockResult::Return(
             Err(
                 dotenv::Error::Io(
@@ -219,11 +255,45 @@ mod test {
             )
         ));
 
-        let validation_result = validate_config();
+        let validation_result = validate_config(env_config);
 
-        assert!(validation_result.is_err());
-        assert_eq!(validation_result.err().unwrap(), "Permission denied");
-
-        teardown();
+        match validation_result {
+            Err(ConfigValidationError::Io(std::io::ErrorKind::PermissionDenied)) => assert!(true),
+            x => assert!(false, "Wrong result type: {:?}, should be ConfigValidationError::Io(std::io::ErrorKind::PermissionDenied)", x),
+        };
     }
+
+    #[test]
+    fn validation_config_dotenv_cant_parse_line() {
+        let env_config = setup();
+        dotenv_wrapper.mock_safe(|| MockResult::Return(
+            Err(
+                dotenv::Error::LineParse("Error parsing line".to_string())
+            )
+        ));
+
+        let validation_result = validate_config(env_config);
+
+        match validation_result {
+            Err(ConfigValidationError::DotenvParsing(_)) => assert!(true),
+            x => assert!(false, "Wrong result type: {:?}, should be ConfigValidationError::DotenvParsing(_)", x),
+        };
+    }
+
+//    #[test]
+//    fn validation_config_dotenv_cant_fetch_envvar() {
+//        let env_config = setup();
+//        dotenv_wrapper.mock_safe(|| MockResult::Return(
+//            Err(
+//                dotenv::Error::EnvVar(std::env::VarError)
+//            )
+//        ));
+//
+//        let validation_result = validate_config(env_config);
+//
+//        match validation_result {
+//            Err(ConfigValidationError::DotenvParsing(_)) => assert!(true),
+//            x => assert!(false, "Wrong result type: {:?}, should be ConfigValidationError::DotenvParsing(_)", x),
+//        };
+//    }
 }
