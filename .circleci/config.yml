@@ -9,7 +9,7 @@ jobs:
           path: /home/rust/repo
       - run:
           name: Mount sources
-          command: cp -r /home/rust/repo/* .
+          command: cp -r /home/rust/repo/src /home/rust/repo/static /home/rust/repo/tests . 
       - run:
           name: Test
           command: cargo test
