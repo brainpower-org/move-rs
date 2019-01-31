@@ -5,7 +5,7 @@ jobs:
       - image: marionebl/move_rs_dev
     working_directory: /home/rust/src
     steps:
-      - checkout
+      - checkout:
           path: /home/rust/repo
       - run:
           name: Mount sources
