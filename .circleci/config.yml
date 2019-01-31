@@ -6,6 +6,10 @@ jobs:
     working_directory: /home/rust/src
     steps:
       - checkout
+          path: /home/rust/repo
+      - run:
+          name: Mount sources
+          command: cp -r /home/rust/repo/* .
       - run:
           name: Test
           command: cargo test
