@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test:
+  build:
     docker:
       - image: marionebl/move_rs_dev
     working_directory: /home/rust/src
