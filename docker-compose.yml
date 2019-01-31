@@ -1,0 +1,12 @@
+version: "3"
+services:
+  move_rs:
+    build: .
+    image: marionebl/move_rs_dev
+    volumes:
+      - ".env:/home/rust/src/.env"
+      - "./src:/home/rust/src/src"
+      - "./tests:/home/rust/src/tests"
+    ports:
+      - "8000:8000"
+    entrypoint: cargo

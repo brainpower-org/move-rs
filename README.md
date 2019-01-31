@@ -1,5 +1,17 @@
 # move-rs
 
+## Prerequesites
+
+* docker
+* docker-compose
+
+## Getting started
+
+```sh
+cp .env.sample .env
+docker-compose run move_rs run # binds to port 1337
+```
+
 ## Future plans
 
 * Breakout session for new/strange/exiting/scary language features
