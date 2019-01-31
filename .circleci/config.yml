@@ -1,0 +1,11 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: marionebl/move_rs_dev
+    working_directory: /home/rust/src
+    steps:
+      - checkout
+      - run:
+          name: Test
+          command: cargo test
