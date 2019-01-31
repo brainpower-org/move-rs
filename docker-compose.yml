@@ -1,12 +1,20 @@
 version: "3"
 services:
-  move_rs:
+  test:
     build: .
     image: marionebl/move_rs_dev
     volumes:
       - ".env:/home/rust/src/.env"
       - "./src:/home/rust/src/src"
       - "./tests:/home/rust/src/tests"
+    command: cargo watch -x test
+  serve:
+    build: .
+    image: marionebl/move_rs_dev
     ports:
       - "8000:8000"
-    entrypoint: cargo
+    volumes:
+      - ".env:/home/rust/src/.env"
+      - "./src:/home/rust/src/src"
+      - "./tests:/home/rust/src/tests"
+    command: cargo watch -x run
