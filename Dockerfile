@@ -1,7 +1,5 @@
 FROM ekidd/rust-musl-builder:nightly
 
-RUN pwd
-
 USER rust
 
 RUN cargo install cargo-watch
