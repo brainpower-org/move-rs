@@ -9,6 +9,7 @@
 
 ```sh
 cp .env.sample .env
+docker-compose build
 docker-compose run move_rs run # binds to port 1337
 ```
 
