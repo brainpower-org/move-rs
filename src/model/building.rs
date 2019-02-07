@@ -1,3 +1,4 @@
+use model::DbModel;
 use rocket::http::RawStr;
 use rocket::request::FromFormValue;
 
@@ -12,7 +13,15 @@ pub struct Building {
     pub phone_number: String,
     pub email: String,
     pub geo_coordinate: GeoCoordinate,
-    pub model_type: String,
+}
+
+impl DbModel for Building {
+    fn type_string() -> &'static str {
+        "Building"
+    }
+    fn model_type(&self) -> String {
+        self.model_type
+    }
 }
 
 #[derive(FromForm, Serialize, Deserialize, Debug, PartialEq)]

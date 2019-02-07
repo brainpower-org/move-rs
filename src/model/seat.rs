@@ -1,4 +1,5 @@
 use model::Building;
+use model::DbModel;
 use model::Floor;
 use model::Person;
 
@@ -13,5 +14,14 @@ pub struct Seat {
     coordinates: Vec<(i32, i32)>,
     pub person: Option<Person>,
     tags: Vec<String>,
-    model_type: String,
+    pub model_type: String,
+}
+
+impl DbModel for Seat {
+    fn type_string() -> &'static str {
+        "Seat"
+    }
+    fn model_type(&self) -> String {
+        self.model_type
+    }
 }
