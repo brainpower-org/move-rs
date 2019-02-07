@@ -80,13 +80,51 @@ impl<T: DynamoDb> Move<T> {
 
         self.db.put_item(put_building).sync()
     }
+
+    pub fn read_buildings(&self) -> Result<Vec<model::Building>, ScanError> {
+        let mut scan_input = ScanInput::default();
+        scan_input.table_name = self.table_name.clone();
+
+        match self.db.scan(scan_input).sync() {
+            Ok(scan_output) => {
+                println!("{:?}", scan_output.items);
+                Ok(scan_output
+                    .items
+                    .unwrap_or_else(|| vec![])
+                    .into_iter()
+                    .map(|item| serde_dynamodb::from_hashmap::<model::Building>(item).unwrap())
+                    .filter(|person| person.model_type == String::from("Building"))
+                    .collect::<Vec<model::Building>>())
+            }
+            Err(scan_error) => Err(scan_error),
+        }
+    }
+
+    pub fn read_entries<M: model::DbModel>(&self) {
+        let mut scan_input = ScanInput::default();
+        scan_input.table_name = self.table_name.clone();
+
+        match self.db.scan(scan_input).sync() {
+            Ok(scan_output) => {
+                println!("{:?}", scan_output.items);
+                Ok(scan_output
+                    .items
+                    .unwrap_or_else(|| vec![])
+                    .into_iter()
+                    .map(|item| serde_dynamodb::from_hashmap::<M>(item).unwrap())
+                    //.filter(|entry| entry.model_type == M::type_string().to_string())
+                    .collect::<Vec<M>>())
+            }
+            Err(scan_error) => Err(scan_error),
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use futures::prelude::*;
     use futures::future;
+    use futures::prelude::*;
     use mocks::DynamoDbMock;
     use mocktopus::mocking::*;
     use model;
@@ -145,9 +183,7 @@ mod test {
                 ..Default::default()
             };
 
-             MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let person = move_app.create_person(CreatePersonPayload {
@@ -185,9 +221,7 @@ mod test {
             let output = ScanOutput {
                 ..Default::default()
             };
-            MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let persons = move_app.read_persons();
@@ -202,7 +236,6 @@ mod test {
         };
 
         DynamoDbMock::scan.mock_safe(|_, _| {
-
             let item_building = serde_dynamodb::to_hashmap(&model::Building {
                 id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
                 model_type: "Building".to_string(),
@@ -237,9 +270,7 @@ mod test {
                 ..Default::default()
             };
 
-             MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let persons = move_app.read_persons();

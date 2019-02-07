@@ -1,5 +1,7 @@
 extern crate uuid;
 
+use model::DbModel;
+
 #[derive(FromForm)]
 pub struct PutPersonPayload {
     name: String,
@@ -13,12 +15,21 @@ pub struct Person {
     pub model_type: String,
 }
 
+impl DbModel for Person {
+    fn type_string() -> &'static str {
+        "Person"
+    }
+    fn model_type(&self) -> String {
+        self.model_type
+    }
+}
+
 impl Default for Person {
     fn default() -> Person {
         return Person {
             id: uuid::Uuid::new_v4().to_string(),
             name: String::from("NewUser"),
-            model_type: String::from("Person"),
+            model_type: String::from(Person::type_string()),
         };
     }
 }
