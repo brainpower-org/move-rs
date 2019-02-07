@@ -122,6 +122,44 @@ impl<T: DynamoDb> Move<T> {
 
         self.db.put_item(put_building).sync()
     }
+
+    pub fn read_buildings(&self) -> Result<Vec<model::Building>, ScanError> {
+        let mut scan_input = ScanInput::default();
+        scan_input.table_name = self.table_name.clone();
+
+        match self.db.scan(scan_input).sync() {
+            Ok(scan_output) => {
+                println!("{:?}", scan_output.items);
+                Ok(scan_output
+                    .items
+                    .unwrap_or_else(|| vec![])
+                    .into_iter()
+                    .map(|item| serde_dynamodb::from_hashmap::<model::Building>(item).unwrap())
+                    .filter(|person| person.model_type == String::from("Building"))
+                    .collect::<Vec<model::Building>>())
+            }
+            Err(scan_error) => Err(scan_error),
+        }
+    }
+
+    pub fn read_entries<M: model::DbModel>(&self) {
+        let mut scan_input = ScanInput::default();
+        scan_input.table_name = self.table_name.clone();
+
+        match self.db.scan(scan_input).sync() {
+            Ok(scan_output) => {
+                println!("{:?}", scan_output.items);
+                Ok(scan_output
+                    .items
+                    .unwrap_or_else(|| vec![])
+                    .into_iter()
+                    .map(|item| serde_dynamodb::from_hashmap::<M>(item).unwrap())
+                    //.filter(|entry| entry.model_type == M::type_string().to_string())
+                    .collect::<Vec<M>>())
+            }
+            Err(scan_error) => Err(scan_error),
+        }
+    }
 }
 
 #[cfg(test)]

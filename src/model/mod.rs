@@ -19,3 +19,8 @@ pub use self::meeting_room::MeetingRoom;
 pub use self::person::Person;
 pub use self::seat::Seat;
 pub use self::workspace::Workspace;
+
+pub trait DbModel {
+    fn type_string() -> &'static str;
+    fn model_type(&self) -> String;
+}

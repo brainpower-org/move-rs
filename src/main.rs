@@ -51,7 +51,7 @@ fn start_app() {
             "/person",
             routes![route::person::put_person, route::person::get_persons],
         )
-        .mount("/seat", routes![route::seat::get_seat])
+        .mount("/seat", routes![route::seat::put_to_seat])
         .manage(app)
         .launch();
 }
