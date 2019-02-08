@@ -48,7 +48,7 @@ impl<T: DynamoDb> Move<T> {
                     stream_specification: Option::None,
                     table_name: "rust-skillgroup".to_owned(),
                 })
-                .wait()
+                .sync()
             {
                 Ok(_) => println!("success"),
                 Err(err) => println!("{:?}", err),
