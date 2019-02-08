@@ -1,20 +1,25 @@
 version: "3"
 services:
-  test:
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - '8001:8000'
+    environment:
+      AWS_DEFAULT_REGION: 'local'
+      AWS_ACCESS_KEY_ID: 'test'
+      AWS_SECRET_ACCESS_KEY: 'test'
+  move-rs:
     build: .
     image: marionebl/move_rs_dev
-    volumes:
-      - ".env:/home/rust/src/.env"
-      - "./src:/home/rust/src/src"
-      - "./tests:/home/rust/src/tests"
-    command: cargo watch -x test
-  serve:
-    build: .
-    image: marionebl/move_rs_dev
+    depends_on:
+      - dynamodb
     ports:
       - "8000:8000"
+    environment:
+      AWS_DEFAULT_REGION: 'local'
+      AWS_ACCESS_KEY_ID: 'test'
+      AWS_SECRET_ACCESS_KEY: 'test'
     volumes:
-      - ".env:/home/rust/src/.env"
       - "./src:/home/rust/src/src"
       - "./tests:/home/rust/src/tests"
     command: cargo watch -x run

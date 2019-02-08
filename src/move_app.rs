@@ -1,7 +1,11 @@
+use futures::Future;
 use model;
+use rusoto_core::Region;
 use rusoto_dynamodb::{
-    DynamoDb, DynamoDbClient, PutItemError, PutItemInput, PutItemOutput, ScanError, ScanInput,
+    AttributeDefinition, CreateTableInput, DynamoDb, DynamoDbClient, KeySchemaElement,
+    ProvisionedThroughput, PutItemError, PutItemInput, PutItemOutput, ScanError, ScanInput,
 };
+use std::thread::spawn;
 
 #[derive(Debug)]
 pub struct Move<T> {
@@ -22,7 +26,34 @@ pub struct CreateBuildingPayload {
 
 impl<T: DynamoDb> Move<T> {
     pub fn new() -> Move<DynamoDbClient> {
-        let db = DynamoDbClient::new(rusoto_core::Region::EuCentral1);
+        let region = Region::Custom {
+            name: "local".to_owned(),
+            endpoint: "http://dynamodb:8000".to_owned(),
+        };
+
+        //let db = DynamoDbClient::new(rusoto_core::Region::EuCentral1); TODO switch if region is local
+        let db = DynamoDbClient::new(region);
+
+        // https://github.com/rusoto/rusoto/issues/1086
+               match db.create_table(CreateTableInput {
+                    attribute_definitions: [].to_vec(),
+                    global_secondary_indexes: Option::None,
+                    key_schema: [].to_vec(),
+                    local_secondary_indexes: Option::None,
+                    provisioned_throughput: ProvisionedThroughput {
+                        read_capacity_units: 100,
+                        write_capacity_units: 100,
+                    },
+                    sse_specification: Option::None,
+                    stream_specification: Option::None,
+                    table_name: "rust-skillgroup".to_owned(),
+                })
+                .wait()
+            {
+                Ok(_) => println!("success"),
+                Err(err) => println!("{:?}", err),
+            };
+
         let table_name = String::from("rust-skillgroup");
         Move { db, table_name }
     }
@@ -85,8 +116,8 @@ impl<T: DynamoDb> Move<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use futures::prelude::*;
     use futures::future;
+    use futures::prelude::*;
     use mocks::DynamoDbMock;
     use mocktopus::mocking::*;
     use model;
@@ -145,9 +176,7 @@ mod test {
                 ..Default::default()
             };
 
-             MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let person = move_app.create_person(CreatePersonPayload {
@@ -185,9 +214,7 @@ mod test {
             let output = ScanOutput {
                 ..Default::default()
             };
-            MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let persons = move_app.read_persons();
@@ -202,7 +229,6 @@ mod test {
         };
 
         DynamoDbMock::scan.mock_safe(|_, _| {
-
             let item_building = serde_dynamodb::to_hashmap(&model::Building {
                 id: "87172779-07f0-456f-a046-b117550ce3e9".to_string(),
                 model_type: "Building".to_string(),
@@ -237,9 +263,7 @@ mod test {
                 ..Default::default()
             };
 
-             MockResult::Return(RusotoFuture::from_future(
-                future::ok(output)
-            ))
+            MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
         let persons = move_app.read_persons();
