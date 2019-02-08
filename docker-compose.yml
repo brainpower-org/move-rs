@@ -23,4 +23,5 @@ services:
     volumes:
       - "./src:/home/rust/src/src"
       - "./tests:/home/rust/src/tests"
-    command: cargo watch -x run
+    entrypoint: cargo watch -x
+    command: run
