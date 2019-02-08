@@ -35,24 +35,33 @@ impl<T: DynamoDb> Move<T> {
         let db = DynamoDbClient::new(region);
 
         // https://github.com/rusoto/rusoto/issues/1086
-               match db.create_table(CreateTableInput {
-                    attribute_definitions: [].to_vec(),
-                    global_secondary_indexes: Option::None,
-                    key_schema: [].to_vec(),
-                    local_secondary_indexes: Option::None,
-                    provisioned_throughput: ProvisionedThroughput {
-                        read_capacity_units: 100,
-                        write_capacity_units: 100,
-                    },
-                    sse_specification: Option::None,
-                    stream_specification: Option::None,
-                    table_name: "rust-skillgroup".to_owned(),
-                })
-                .sync()
-            {
-                Ok(_) => println!("success"),
-                Err(err) => println!("{:?}", err),
-            };
+        match db
+            .create_table(CreateTableInput {
+                attribute_definitions: [AttributeDefinition {
+                    attribute_name: "id".to_owned(),
+                    attribute_type: "N".to_owned(),
+                }]
+                .to_vec(),
+                global_secondary_indexes: Option::None,
+                key_schema: [KeySchemaElement {
+                    attribute_name: "id".to_owned(),
+                    key_type: "HASH".to_owned(),
+                }]
+                .to_vec(),
+                local_secondary_indexes: Option::None,
+                provisioned_throughput: ProvisionedThroughput {
+                    read_capacity_units: 100,
+                    write_capacity_units: 100,
+                },
+                sse_specification: Option::None,
+                stream_specification: Option::None,
+                table_name: "rust-skillgroup".to_owned(),
+            })
+            .sync()
+        {
+            Ok(_) => println!("success"),
+            Err(err) => println!("{:?}", err),
+        };
 
         let table_name = String::from("rust-skillgroup");
         Move { db, table_name }
