@@ -39,7 +39,7 @@ impl<T: DynamoDb> Move<T> {
             .create_table(CreateTableInput {
                 attribute_definitions: [AttributeDefinition {
                     attribute_name: "id".to_owned(),
-                    attribute_type: "N".to_owned(),
+                    attribute_type: "S".to_owned(),
                 }]
                 .to_vec(),
                 global_secondary_indexes: Option::None,
