@@ -5,7 +5,8 @@ use rusoto_dynamodb::{
     AttributeDefinition, CreateTableInput, DynamoDb, DynamoDbClient, KeySchemaElement,
     ProvisionedThroughput, PutItemError, PutItemInput, PutItemOutput, ScanError, ScanInput,
 };
-use std::thread::spawn;
+use std::env;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Move<T> {
@@ -26,12 +27,13 @@ pub struct CreateBuildingPayload {
 
 impl<T: DynamoDb> Move<T> {
     pub fn new() -> Move<DynamoDbClient> {
-        let region = Region::Custom {
-            name: "local".to_owned(),
-            endpoint: "http://dynamodb:8000".to_owned(),
+        let region = match env::var("AWS_DEFAULT_REGION").unwrap().as_ref() {
+            "local" => Region::Custom {
+                name: "local".to_owned(),
+                endpoint: "http://dynamodb:8000".to_owned(),
+            },
+            region => Region::from_str(&region).expect("unknown aws region"),
         };
-
-        //let db = DynamoDbClient::new(rusoto_core::Region::EuCentral1); TODO switch if region is local
         let db = DynamoDbClient::new(region);
 
         // https://github.com/rusoto/rusoto/issues/1086
