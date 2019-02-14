@@ -19,7 +19,7 @@ pub struct CreatePersonPayload {
     name: String,
 }
 
-#[derive(FromForm)]
+#[derive(FromForm, Debug)]
 pub struct CreateBuildingPayload {
     geo_coordinate: model::GeoCoordinate,
     name: String,
@@ -84,25 +84,6 @@ impl<T: DynamoDb> Move<T> {
         self.db.put_item(put_person).sync()
     }
 
-    pub fn read_persons(&self) -> Result<Vec<model::Person>, ScanError> {
-        let mut scan_input = ScanInput::default();
-        scan_input.table_name = self.table_name.clone();
-
-        match self.db.scan(scan_input).sync() {
-            Ok(scan_output) => {
-                println!("{:?}", scan_output.items);
-                Ok(scan_output
-                    .items
-                    .unwrap_or_else(|| vec![])
-                    .into_iter()
-                    .map(|item| serde_dynamodb::from_hashmap::<model::Person>(item).unwrap())
-                    .filter(|person| person.model_type == String::from("Person"))
-                    .collect::<Vec<model::Person>>())
-            }
-            Err(scan_error) => Err(scan_error),
-        }
-    }
-
     pub fn create_building(
         &self,
         building_payload: CreateBuildingPayload,
@@ -111,9 +92,13 @@ impl<T: DynamoDb> Move<T> {
             geo_coordinate,
             name,
         } = building_payload;
-        let mut building = model::Building::from_geo_coordinate(geo_coordinate);
-        building.name = name;
 
+        let mut building = model::Building {
+            geo_coordinate,
+            name,
+            ..Default::default()
+        };
+        
         let put_building = PutItemInput {
             item: serde_dynamodb::to_hashmap(&building).unwrap(),
             table_name: self.table_name.clone(),
@@ -123,7 +108,7 @@ impl<T: DynamoDb> Move<T> {
         self.db.put_item(put_building).sync()
     }
 
-    pub fn read_buildings(&self) -> Result<Vec<model::Building>, ScanError> {
+    pub fn read_entries<M: model::DbModel + serde::de::DeserializeOwned>(&self) -> Result<Vec<M>, ScanError> {
         let mut scan_input = ScanInput::default();
         scan_input.table_name = self.table_name.clone();
 
@@ -134,27 +119,11 @@ impl<T: DynamoDb> Move<T> {
                     .items
                     .unwrap_or_else(|| vec![])
                     .into_iter()
-                    .map(|item| serde_dynamodb::from_hashmap::<model::Building>(item).unwrap())
-                    .filter(|person| person.model_type == String::from("Building"))
-                    .collect::<Vec<model::Building>>())
-            }
-            Err(scan_error) => Err(scan_error),
-        }
-    }
-
-    pub fn read_entries<M: model::DbModel>(&self) {
-        let mut scan_input = ScanInput::default();
-        scan_input.table_name = self.table_name.clone();
-
-        match self.db.scan(scan_input).sync() {
-            Ok(scan_output) => {
-                println!("{:?}", scan_output.items);
-                Ok(scan_output
-                    .items
-                    .unwrap_or_else(|| vec![])
-                    .into_iter()
+                    .filter(|entry| {
+                        let model_type = entry.get("model_type").unwrap().clone().s.unwrap();
+                        return model_type == M::type_string().to_string();
+                    })
                     .map(|item| serde_dynamodb::from_hashmap::<M>(item).unwrap())
-                    //.filter(|entry| entry.model_type == M::type_string().to_string())
                     .collect::<Vec<M>>())
             }
             Err(scan_error) => Err(scan_error),

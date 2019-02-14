@@ -46,7 +46,7 @@ fn start_app() {
 
     rocket::ignite()
         .mount("/", routes![index, files])
-        .mount("/building", routes![route::building::put_building])
+        .mount("/building", routes![route::building::put_building, route::building::get_buildings])
         .mount(
             "/person",
             routes![route::person::put_person, route::person::get_persons],

@@ -31,7 +31,7 @@ pub fn put_person(
 pub fn get_persons(
     app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
 ) -> Result<Json<Vec<model::Person>>, status::NotFound<String>> {
-    app.read_persons()
+    app.read_entries::<model::Person>()
         .map(|persons| Json(persons))
         .map_err(|err| status::NotFound(err.description().to_string()))
 }
