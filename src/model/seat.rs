@@ -21,7 +21,7 @@ impl DbModel for Seat {
     fn type_string() -> &'static str {
         "Seat"
     }
-    fn model_type(&self) -> String {
-        self.model_type
+    fn model_type(&self) -> &String {
+        &self.model_type
     }
 }

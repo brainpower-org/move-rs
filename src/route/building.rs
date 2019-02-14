@@ -6,7 +6,6 @@ use std::error::Error;
 
 use model;
 use move_app;
-use rocket_contrib::json::Json;
 
 #[post("/", data = "<building>")]
 pub fn put_building(
@@ -23,7 +22,7 @@ pub fn put_building(
 pub fn get_buildings(
     app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
 ) -> Result<Json<Vec<model::Building>>, status::NotFound<String>> {
-    app.read_buildings()
+    app.read_entries::<model::Building>()
         .map(|buildings| Json(buildings))
         .map_err(|err| status::NotFound(err.description().to_string()))
 }

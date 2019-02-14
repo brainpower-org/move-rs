@@ -5,7 +5,7 @@ use rocket::request::FromFormValue;
 /**
  * A building housing floors
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Building {
     pub id: String,
     pub name: String,
@@ -13,14 +13,15 @@ pub struct Building {
     pub phone_number: String,
     pub email: String,
     pub geo_coordinate: GeoCoordinate,
+    pub model_type: String,
 }
 
 impl DbModel for Building {
     fn type_string() -> &'static str {
         "Building"
     }
-    fn model_type(&self) -> String {
-        self.model_type
+    fn model_type(&self) -> &String {
+        &self.model_type
     }
 }
 
@@ -54,18 +55,12 @@ impl Default for Building {
         return Building {
             id: uuid::Uuid::new_v4().to_string(),
             name: String::from("New Building"),
-            model_type: String::from("Building"),
-            ..Default::default()
+            model_type: String::from("Building"),        
+            address: Default::default(),
+            phone_number: Default::default(),
+            email: Default::default(),
+            geo_coordinate: GeoCoordinate {lat: 0.0, lng: 0.0},
         };
-    }
-}
-
-impl Building {
-    pub fn from_geo_coordinate(geo_coordinate: GeoCoordinate) -> Self {
-        Building {
-            geo_coordinate,
-            ..Building::default()
-        }
     }
 }
 

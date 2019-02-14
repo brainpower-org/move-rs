@@ -19,8 +19,8 @@ impl DbModel for Person {
     fn type_string() -> &'static str {
         "Person"
     }
-    fn model_type(&self) -> String {
-        self.model_type
+    fn model_type(&self) -> &String {
+        &self.model_type
     }
 }
 
