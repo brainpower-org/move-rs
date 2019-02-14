@@ -27,6 +27,7 @@ pub struct CreateBuildingPayload {
 
 impl<T: DynamoDb> Move<T> {
     pub fn new() -> Move<DynamoDbClient> {
+        let table_name = String::from("rust-skillgroup");
         let region = match env::var("AWS_DEFAULT_REGION").unwrap().as_ref() {
             "local" => Region::Custom {
                 name: "local".to_owned(),
@@ -57,7 +58,7 @@ impl<T: DynamoDb> Move<T> {
                 },
                 sse_specification: Option::None,
                 stream_specification: Option::None,
-                table_name: "rust-skillgroup".to_owned(),
+                table_name: table_name.clone(),
             })
             .sync()
         {
@@ -65,7 +66,6 @@ impl<T: DynamoDb> Move<T> {
             Err(err) => println!("{:?}", err),
         };
 
-        let table_name = String::from("rust-skillgroup");
         Move { db, table_name }
     }
 
