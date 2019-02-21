@@ -120,8 +120,10 @@ impl<T: DynamoDb> Move<T> {
                     .unwrap_or_else(|| vec![])
                     .into_iter()
                     .filter(|entry| {
-                        let model_type = entry.get("model_type").unwrap().clone().s.unwrap();
-                        return model_type == M::type_string().to_string();
+                        match entry.get("model_type").and_then(|m| m.clone().s) {
+                            Some(m) => m == M::type_string().to_string(),
+                            None => false
+                        }
                     })
                     .map(|item| serde_dynamodb::from_hashmap::<M>(item).unwrap())
                     .collect::<Vec<M>>())
@@ -156,7 +158,7 @@ mod test {
             )
         });
 
-        let persons = move_app.read_persons();
+        let persons = move_app.read_entries::<model::Person>();
         assert!(persons.is_err());
     }
 
@@ -235,7 +237,7 @@ mod test {
             MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
-        let persons = move_app.read_persons();
+        let persons = move_app.read_entries::<model::Person>();
         assert!(persons.is_ok());
     }
 
@@ -284,7 +286,7 @@ mod test {
             MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
-        let persons = move_app.read_persons();
+        let persons = move_app.read_entries::<model::Person>();
         assert!(persons.is_ok());
         assert_eq!(persons.unwrap().len(), 1);
     }
