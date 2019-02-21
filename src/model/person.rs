@@ -2,13 +2,7 @@ extern crate uuid;
 
 use model::DbModel;
 
-#[derive(FromForm)]
-pub struct PutPersonPayload {
-    name: String,
-    model_type: String,
-}
-
-#[derive(Serialize, Deserialize, FromForm)]
+#[derive(Serialize, Deserialize)]
 pub struct Person {
     pub id: String,
     pub name: String,
@@ -19,6 +13,7 @@ impl DbModel for Person {
     fn type_string() -> &'static str {
         "Person"
     }
+
     fn model_type(&self) -> &String {
         &self.model_type
     }

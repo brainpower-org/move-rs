@@ -7,12 +7,30 @@ use std::error::Error;
 use model;
 use move_app;
 
-#[post("/", data = "<building>")]
+
+#[derive(FromForm, Debug)]
+pub struct CreateBuildingPayload {
+    geo_coordinate: model::GeoCoordinate,
+    name: String,
+}
+
+#[post("/", data = "<building_payload>")]
 pub fn put_building(
     app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
-    building: Form<move_app::CreateBuildingPayload>,
+    building_payload: Form<CreateBuildingPayload>,
 ) -> String {
-    match app.create_building(building.into_inner()) {
+    let CreateBuildingPayload {
+        geo_coordinate,
+        name,
+    } = building_payload.into_inner();
+
+    let building = model::Building {
+        geo_coordinate,
+        name,
+        ..Default::default()
+    };
+
+    match app.create_entry(building) {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }

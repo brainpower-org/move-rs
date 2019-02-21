@@ -7,6 +7,11 @@ use std::error::Error;
 use model;
 use move_app;
 
+#[derive(FromForm)]
+pub struct CreatePersonPayload {
+    name: String,
+}
+
 /**
 * 
 * Call with curl
@@ -16,12 +21,13 @@ use move_app;
  -H 'Content-Type: application/x-www-form-urlencoded' \
  -d 'id=2&name=rust-update'
 */
-#[post("/", data = "<person>")]
+#[post("/", data = "<person_payload>")]
 pub fn put_person(
     app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
-    person: Form<move_app::CreatePersonPayload>,
+    person_payload: Form<CreatePersonPayload>,
 ) -> String {
-    match app.create_person(person.into_inner()) {
+    let person = model::Person::from_name(person_payload.into_inner().name);
+    match app.create_entry(person) {
         Ok(scan_output) => format!("{:?}", scan_output),
         Err(scan_error) => format!("{:?}", scan_error),
     }
