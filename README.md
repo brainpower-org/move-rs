@@ -11,3 +11,9 @@
 docker-compose pull
 docker-compose up
 ```
+
+## Testing
+
+```sh
+docker-compose run --rm move-rs test
+```
