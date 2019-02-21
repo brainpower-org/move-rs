@@ -1,4 +1,3 @@
-use futures::Future;
 use model;
 use rusoto_core::Region;
 use rusoto_dynamodb::{
@@ -12,17 +11,6 @@ use std::str::FromStr;
 pub struct Move<T> {
     db: T,
     table_name: String,
-}
-
-#[derive(FromForm)]
-pub struct CreatePersonPayload {
-    name: String,
-}
-
-#[derive(FromForm, Debug)]
-pub struct CreateBuildingPayload {
-    geo_coordinate: model::GeoCoordinate,
-    name: String,
 }
 
 impl<T: DynamoDb> Move<T> {
@@ -69,43 +57,14 @@ impl<T: DynamoDb> Move<T> {
         Move { db, table_name }
     }
 
-    pub fn create_person(
-        &self,
-        person_payload: CreatePersonPayload,
-    ) -> Result<PutItemOutput, PutItemError> {
-        let person = model::Person::from_name(person_payload.name);
-
-        let put_person = PutItemInput {
-            item: serde_dynamodb::to_hashmap(&person).unwrap(),
+    pub fn create_entry<M: model::DbModel + serde::Serialize>(&self, entry: M) -> Result<PutItemOutput, PutItemError> {
+        let create_entry = PutItemInput {
+            item: serde_dynamodb::to_hashmap(&entry).unwrap(),
             table_name: self.table_name.clone(),
             ..Default::default()
         };
 
-        self.db.put_item(put_person).sync()
-    }
-
-    pub fn create_building(
-        &self,
-        building_payload: CreateBuildingPayload,
-    ) -> Result<PutItemOutput, PutItemError> {
-        let CreateBuildingPayload {
-            geo_coordinate,
-            name,
-        } = building_payload;
-
-        let mut building = model::Building {
-            geo_coordinate,
-            name,
-            ..Default::default()
-        };
-        
-        let put_building = PutItemInput {
-            item: serde_dynamodb::to_hashmap(&building).unwrap(),
-            table_name: self.table_name.clone(),
-            ..Default::default()
-        };
-
-        self.db.put_item(put_building).sync()
+        self.db.put_item(create_entry).sync()
     }
 
     pub fn read_entries<M: model::DbModel + serde::de::DeserializeOwned>(&self) -> Result<Vec<M>, ScanError> {
@@ -114,7 +73,6 @@ impl<T: DynamoDb> Move<T> {
 
         match self.db.scan(scan_input).sync() {
             Ok(scan_output) => {
-                println!("{:?}", scan_output.items);
                 Ok(scan_output
                     .items
                     .unwrap_or_else(|| vec![])
@@ -137,7 +95,6 @@ impl<T: DynamoDb> Move<T> {
 mod test {
     use super::*;
     use futures::future;
-    use futures::prelude::*;
     use mocks::DynamoDbMock;
     use mocktopus::mocking::*;
     use model;
@@ -163,7 +120,7 @@ mod test {
     }
 
     #[test]
-    fn create_person_fails() {
+    fn create_entry_fails() {
         let move_app = Move {
             db: DynamoDbMock {},
             table_name: String::from("test"),
@@ -178,20 +135,20 @@ mod test {
             )
         });
 
-        let person = move_app.create_person(CreatePersonPayload {
-            name: String::from("Testuser"),
-        });
+
+        let new_person = model::Person::from_name("Testuser".to_string());
+        let person = move_app.create_entry(new_person);
         assert!(person.is_err());
     }
 
     #[test]
-    fn create_person_success() {
+    fn create_entry_success() {
         let move_app = Move {
             db: DynamoDbMock {},
             table_name: String::from("test"),
         };
 
-        DynamoDbMock::put_item.mock_safe(|_, input| {
+        DynamoDbMock::put_item.mock_safe(|_, _| {
             let output = PutItemOutput {
                 ..Default::default()
             };
@@ -199,15 +156,14 @@ mod test {
             MockResult::Return(RusotoFuture::from_future(future::ok(output)))
         });
 
-        let person = move_app.create_person(CreatePersonPayload {
-            name: String::from("Testuser"),
-        });
+        let new_person = model::Person::from_name("Testuser".to_string());
+        let person = move_app.create_entry(new_person);
 
         assert!(person.is_ok());
     }
 
     #[test]
-    fn create_person_correct_input() {
+    fn create_entry_correct_input() {
         let move_app = Move {
             db: DynamoDbMock {},
             table_name: String::from("test"),
@@ -218,9 +174,9 @@ mod test {
             MockResult::Return(Err(PutItemError::Validation("Irrelephant".to_string())).into())
         });
 
-        move_app.create_person(CreatePersonPayload {
-            name: String::from("Bob"),
-        });
+
+        let new_person = model::Person::from_name("Bob".to_string());
+        let _person = move_app.create_entry(new_person);
     }
 
     #[test]
