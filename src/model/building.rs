@@ -23,6 +23,7 @@ impl DbModel for Building {
     fn model_type(&self) -> &String {
         &self.model_type
     }
+    fn get_id(&self) -> &String { &self.id}
 }
 
 #[derive(FromForm, Serialize, Deserialize, Debug, PartialEq)]
@@ -55,7 +56,7 @@ impl Default for Building {
         return Building {
             id: uuid::Uuid::new_v4().to_string(),
             name: String::from("New Building"),
-            model_type: String::from("Building"),        
+            model_type: Building::type_string().to_string(),
             address: Default::default(),
             phone_number: Default::default(),
             email: Default::default(),

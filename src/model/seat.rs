@@ -24,4 +24,5 @@ impl DbModel for Seat {
     fn model_type(&self) -> &String {
         &self.model_type
     }
+    fn get_id(&self) -> &String { &self.id}
 }
