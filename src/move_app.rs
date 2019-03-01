@@ -105,10 +105,10 @@ impl<T: DynamoDb> Move<T> {
             Err(e) => return Err(DbError::ReadError(e)),
         };
 
-        let results: Vec<M> = entries.into_iter().filter(|entry| *entry.get_id() == *id).collect::<Vec<M>>();
+        let mut results: Vec<M> = entries.into_iter().filter(|entry| *entry.get_id() == *id).collect::<Vec<M>>();
 
         match results.len() {
-            1 => Ok(results.into_iter().fold(None, |acc, entry| Some(entry)).unwrap()),
+            1 => Ok(results.swap_remove(0)),
             0 => Err(DbError::EntityNotFound(format!("Entity with id: {} was not found", id))),
             x if x > 1 => Err(DbError::MoreThanOneEntityPerIdFound(format!("Entity with id: {} was not found", id))),
             _ => Err(DbError::UnknownError(format!("Something went wrong looking for the id: {}", id))),
