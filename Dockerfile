@@ -29,3 +29,17 @@ RUN cargo build
 RUN cargo build --tests
 
 ENV ROCKET_ADDRESS 0.0.0.0
+
+
+USER root
+RUN apt-get install -y npm
+RUN apt-get install -y nodejs
+RUN ln -s /usr/bin/nodejs /usr/bin/node
+USER rust
+
+RUN mkdir -p /home/rust/.code-server/extensions
+ADD extensions/rust-lang.rust-0.5.3 \
+    /home/rust/.code-server/extensions/rust-lang.rust-0.5.3
+RUN chmod a+rwx /home/rust/.code-server
+
+RUN rustup component add rls rust-analysis rust-src
