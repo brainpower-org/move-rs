@@ -37,9 +37,12 @@ RUN apt-get install -y nodejs
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 USER rust
 
-RUN mkdir -p /home/rust/.code-server/extensions
-ADD extensions/rust-lang.rust-0.5.3 \
-    /home/rust/.code-server/extensions/rust-lang.rust-0.5.3
-RUN chmod a+rwx /home/rust/.code-server
-
 RUN rustup component add rls rust-analysis rust-src
+
+# https://marketplace.visualstudio.com/_apis/public/gallery/publishers/rust-lang/vsextensions/rust/0.5.3/vspackage
+RUN sudo apt-get install -y unzip
+ADD extensions/rust-lang.rust-0.5.3.vsix rust-lang.rust-0.5.3.vsix.zip
+RUN mkdir -p /home/rust/.code-server/extensions
+RUN unzip rust-lang.rust-0.5.3.vsix.zip 'extension/*' -d /home/rust/.code-server/extensions/ \
+ && mv /home/rust/.code-server/extensions/extension /home/rust/.code-server/extensions/rust-lang.rust-0.5.3
+
