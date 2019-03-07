@@ -46,3 +46,6 @@ RUN mkdir -p /home/rust/.code-server/extensions
 RUN unzip rust-lang.rust-0.5.3.vsix.zip 'extension/*' -d /home/rust/.code-server/extensions/ \
  && mv /home/rust/.code-server/extensions/extension /home/rust/.code-server/extensions/rust-lang.rust-0.5.3
 
+RUN sudo apt-get install -y expect
+ADD rls-build.sh ./
+RUN ./rls-build.sh
