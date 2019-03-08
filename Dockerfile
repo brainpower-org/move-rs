@@ -43,8 +43,7 @@ RUN cargo install \
 RUN mkdir src \
  && touch src/lib.rs
 
-ADD Cargo.lock Cargo.toml ./
-
+ADD . ./
 RUN cargo build
 RUN cargo build --tests
 
