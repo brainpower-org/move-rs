@@ -22,14 +22,5 @@ services:
       AWS_ACCESS_KEY_ID: 'test'
       AWS_SECRET_ACCESS_KEY: 'test'
     volumes:
-      - "./.git:/home/rust/src/.git"
-      - "./.circleci:/home/rust/src/.circleci"
-      - "./extensions:/home/rust/src/extensions"
-      - "./static:/home/rust/src/static"
-      - "./src:/home/rust/src/src"
-      - "./tests:/home/rust/src/tests"
-      - "./.gitignore:/home/rust/src/.gitignore"
-      - "./Dockerfile:/home/rust/src/.Dockerfile"
-      - "./README.md:/home/rust/src/README.md"
-      - "./rls-build.sh:/home/rust/src/rls-build.sh"
+      - ".:/home/rust/src/"
     command: code-server --allow-http --no-auth
