@@ -44,6 +44,7 @@ RUN mkdir src \
  && touch src/lib.rs
 
 ADD . ./
+ENV CARGO_TARGET_DIR=/home/rust/targetcache
 RUN cargo build
 RUN cargo build --tests
 
