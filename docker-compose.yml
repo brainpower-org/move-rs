@@ -22,6 +22,5 @@ services:
       AWS_ACCESS_KEY_ID: 'test'
       AWS_SECRET_ACCESS_KEY: 'test'
     volumes:
-      - "./src:/home/rust/src/src"
-      - "./tests:/home/rust/src/tests"
+      - ".:/home/rust/src/"
     command: code-server --allow-http --no-auth
