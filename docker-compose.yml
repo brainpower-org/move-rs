@@ -16,12 +16,11 @@ services:
       - dynamodb
     ports:
       - "8000:8000"
+      - "8443:8443"
     environment:
       AWS_DEFAULT_REGION: 'local'
       AWS_ACCESS_KEY_ID: 'test'
       AWS_SECRET_ACCESS_KEY: 'test'
     volumes:
-      - "./src:/home/rust/src/src"
-      - "./tests:/home/rust/src/tests"
-    entrypoint: cargo watch -x
-    command: run
+      - ".:/home/rust/src/"
+    command: code-server --allow-http --no-auth
