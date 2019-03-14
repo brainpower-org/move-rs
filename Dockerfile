@@ -28,7 +28,8 @@ RUN apt-get update \
 
 USER rust
 
-RUN rustup component add rls rust-analysis rust-src
+RUN rustup update
+RUN rustup component add rls-preview rust-analysis rust-src
 
 # https://marketplace.visualstudio.com/_apis/public/gallery/publishers/rust-lang/vsextensions/rust/0.5.3/vspackage
 ADD extensions/rust-lang.rust-0.5.3.vsix rust-lang.rust-0.5.3.vsix.zip
