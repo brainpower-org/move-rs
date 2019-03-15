@@ -28,9 +28,8 @@ RUN apt-get update \
 
 USER rust
 
-RUN rustup update
+RUN rustup update nightly
 RUN rustup default nightly
-
 RUN rustup component add rls-preview rust-analysis rust-src
 
 # https://marketplace.visualstudio.com/_apis/public/gallery/publishers/rust-lang/vsextensions/rust/0.5.3/vspackage
