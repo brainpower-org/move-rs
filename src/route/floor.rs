@@ -54,7 +54,16 @@ pub fn put_floor(
     }
 }
 
-fn split_coordinates(coordinate_list: String) -> Result<Vec<(i32, i32)>, String> {
+#[get("/all")]
+pub fn get_floors(
+    app: State<move_app::Move<rusoto_dynamodb::DynamoDbClient>>,
+) -> Result<Json<Vec<model::Floor>>, status::NotFound<String>> {
+    app.read_entries::<model::Floor>()
+        .map(|floors| Json(floors))
+        .map_err(|err| status::NotFound(err.description().to_string()))
+}
+
+fn split_coordinates(coordinate_list: String) -> Result<Vec<model::Coordinate>, String> {
 
     let coordinate_pairs: Vec<Result<Vec<i32>, std::num::ParseIntError>> = coordinate_list
         .split('|')
@@ -68,7 +77,7 @@ fn split_coordinates(coordinate_list: String) -> Result<Vec<(i32, i32)>, String>
 
     coordinate_pairs.into_iter().map(|pair| {
         match pair {
-            Ok(ref p) if p.len() == 2 => Ok((p[0], p[1])),
+            Ok(ref p) if p.len() == 2 => Ok(model::Coordinate {x: p[0], y: p[1]}),
             Ok(p) =>  Err(format!("To many numbers in the coordinate: {:?}", p)),
             Err(e) => Err(format!("Could not parse corordinate as number: {:?}", e)),
         }

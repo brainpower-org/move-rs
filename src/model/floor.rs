@@ -1,5 +1,6 @@
 use model::DbModel;
 use model::Building;
+use model::Coordinate;
 
 /**
  * Floor inside a building
@@ -10,7 +11,7 @@ pub struct Floor {
     pub name: String,
     pub description: String,
     pub building: Building,
-    pub coordinates: Vec<(i32, i32)>,
+    pub coordinates: Vec<Coordinate>,
     pub tags: Vec<String>,
     pub model_type: String,
 }
