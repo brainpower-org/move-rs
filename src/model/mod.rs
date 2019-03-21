@@ -23,4 +23,5 @@ pub use self::workspace::Workspace;
 pub trait DbModel {
     fn type_string() -> &'static str;
     fn model_type(&self) -> &String;
+    fn get_id(&self) -> &String;
 }

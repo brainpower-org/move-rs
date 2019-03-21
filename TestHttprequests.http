@@ -1,0 +1,21 @@
+POST http://localhost:8000/building
+Accept: */*
+Cache-Control: no-cache
+Content-Type: application/x-www-form-urlencoded
+
+name=HausH&geo_coordinate=1,5
+
+###
+
+GET http://localhost:8000/building/all
+
+###
+
+POST http://localhost:8000/floor
+Accept: */*
+Cache-Control: no-cache
+Content-Type: application/x-www-form-urlencoded
+
+name=floor&description=test&building_id=3d9d4bf8-b5d8-4648-808f-ebd5ff75961e&coordinates=1,5|0,5&tags=testtag
+
+###

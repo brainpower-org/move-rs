@@ -13,6 +13,15 @@ pub struct Move<T> {
     table_name: String,
 }
 
+
+#[derive(Debug)]
+pub enum DbError {
+    EntityNotFound(String),
+    MoreThanOneEntityPerIdFound(String),
+    UnknownError(String),
+    ReadError(ScanError)
+}
+
 impl<T: DynamoDb> Move<T> {
     pub fn new() -> Move<DynamoDbClient> {
         let table_name = String::from("rust-skillgroup");
@@ -89,6 +98,22 @@ impl<T: DynamoDb> Move<T> {
             Err(scan_error) => Err(scan_error),
         }
     }
+
+    pub fn read_entry<M: model::DbModel + serde::de::DeserializeOwned>(&self, id: &String) -> Result<M, DbError> {
+        let entries: Vec<M> = match self.read_entries::<M>() {
+            Ok(m) => m,
+            Err(e) => return Err(DbError::ReadError(e)),
+        };
+
+        let mut results: Vec<M> = entries.into_iter().filter(|entry| *entry.get_id() == *id).collect::<Vec<M>>();
+
+        match results.len() {
+            1 => Ok(results.swap_remove(0)),
+            0 => Err(DbError::EntityNotFound(format!("Entity with id: {} was not found", id))),
+            x if x > 1 => Err(DbError::MoreThanOneEntityPerIdFound(format!("Entity with id: {} was not found", id))),
+            _ => Err(DbError::UnknownError(format!("Something went wrong looking for the id: {}", id))),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -108,6 +133,7 @@ mod test {
             db: DynamoDbMock {},
             table_name: String::from("test"),
         };
+
 
         DynamoDbMock::scan.mock_safe(|_, _| {
             MockResult::Return(

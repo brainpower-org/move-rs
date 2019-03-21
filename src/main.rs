@@ -52,6 +52,7 @@ fn start_app() {
             routes![route::person::put_person, route::person::get_persons],
         )
         .mount("/seat", routes![route::seat::put_to_seat])
+        .mount("/floor", routes![route::floor::put_floor])
         .manage(app)
         .launch();
 }
