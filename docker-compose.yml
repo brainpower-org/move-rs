@@ -11,7 +11,7 @@ services:
 
   move-rs:
     build: .
-    image: marionebl/move_rs_dev
+    image: brainpower/move_rs_dev
     depends_on:
       - dynamodb
     ports:
