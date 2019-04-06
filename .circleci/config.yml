@@ -7,10 +7,10 @@ jobs:
     working_directory: /root/project
     steps:
       - checkout:
-          path: /root/repo
+          path: /root/checkout
       - run:
           name: Mount sources
-          command: cp -r /root/repo/src /root/repo/static /root/repo/tests . 
+          command: cp -r /root/checkout/src /root/checkout/static /root/checkout/tests . 
       - run:
           name: Test
           command: cargo test
