@@ -11,7 +11,7 @@ services:
 
   move-rs:
     build: .
-    image: marionebl/move_rs_dev
+    image: brainpower/move-rs-cubicle
     depends_on:
       - dynamodb
     ports:
@@ -22,5 +22,5 @@ services:
       AWS_ACCESS_KEY_ID: 'test'
       AWS_SECRET_ACCESS_KEY: 'test'
     volumes:
-      - ".:/home/rust/src/"
+      - ".:/root/project/"
     command: code-server --allow-http --no-auth
